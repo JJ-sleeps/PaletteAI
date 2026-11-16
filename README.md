@@ -63,6 +63,7 @@ decoding), NumPy (array maths), httpx (webhook calls), pytest (tests). The
 colour-vision matrices are from Machado, Oliveira and Fernandes (2009). The
 pixel-art theme switch (CSS and images) is adapted from a Uiverse.io design by
 zl306, and the "Extract palette" 3D button from one by
-njesenberger, and the animated cube logo from a loader by Admin12121. The
+njesenberger, the animated cube logo from a loader by Admin12121, and the pixel-art header
+blocks from a design by Pinparker. The
 K-Means, silhouette, colour conversion, contrast, harmony and ranking code is
 written for this project.
