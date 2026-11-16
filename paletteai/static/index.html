@@ -1,0 +1,215 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PaletteAI</title>
+  <meta name="description" content="Extract, explore, evaluate and organise colour palettes from images.">
+  <script>
+    // Set the theme before first paint (saved choice, else the OS setting).
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('paletteai.theme'); } catch (e) {}
+      var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/logo.css">
+  <link rel="stylesheet" href="/static/theme-switch.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="app-header">
+    <div class="brand">
+      <h1 class="wordmark">Palette<span>AI</span></h1>
+      <div class="brand-logo" aria-hidden="true">
+        <div class="stage">
+          <div class="loader">
+            <div class="box box0"><div></div></div>
+            <div class="box box1"><div></div></div>
+            <div class="box box2"><div></div></div>
+            <div class="box box3"><div></div></div>
+            <div class="box box4"><div></div></div>
+            <div class="box box5"><div></div></div>
+            <div class="box box6"><div></div></div>
+            <div class="box box7"><div></div></div>
+            <div class="ground"><div></div></div>
+          </div>
+        </div>
+      </div>
+      <p>Colour palettes from images, checked for accessibility</p>
+    </div>
+    <form id="profile-form" class="profile" autocomplete="off">
+      <label for="user-input">Profile</label>
+      <input id="user-input" name="user" maxlength="40" pattern="[A-Za-z0-9_.\-]{1,40}" required
+             aria-describedby="user-hint" spellcheck="false">
+      <button type="submit" class="btn">Switch</button>
+      <span id="user-hint" class="visually-hidden">Letters, digits, dot, dash or underscore. Each profile has its own library and ranking.</span>
+    </form>
+    <label class="theme-switch" title="Switch between light and dark theme">
+      <input type="checkbox" id="theme-toggle" role="switch" aria-label="Dark theme">
+      <span class="slider" aria-hidden="true"></span>
+    </label>
+  </header>
+
+  <nav aria-label="Sections">
+    <div class="tabs" role="tablist" aria-label="PaletteAI sections">
+      <button role="tab" id="tab-extract" aria-controls="panel-extract" aria-selected="true">Extract</button>
+      <button role="tab" id="tab-library" aria-controls="panel-library" aria-selected="false" tabindex="-1">Library &amp; ranking</button>
+      <button role="tab" id="tab-contrast" aria-controls="panel-contrast" aria-selected="false" tabindex="-1">Contrast checker</button>
+      <button role="tab" id="tab-harmony" aria-controls="panel-harmony" aria-selected="false" tabindex="-1">Harmony</button>
+      <button role="tab" id="tab-developers" aria-controls="panel-developers" aria-selected="false" tabindex="-1">Developers</button>
+    </div>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main id="main" tabindex="-1">
+    <noscript>
+      <p class="notice">PaletteAI's interface needs JavaScript. Every feature is also available through the
+      documented REST API: see <a href="/docs">/docs</a>.</p>
+    </noscript>
+
+    <!-- ===================================================== Extract -->
+    <section id="panel-extract" role="tabpanel" aria-labelledby="tab-extract" tabindex="0">
+      <h2>Extract a palette</h2>
+      <div class="card">
+        <form id="upload-form">
+          <div id="dropzone" class="dropzone">
+            <label for="file-input"><strong>Choose an image</strong> or drop one here</label>
+            <input type="file" id="file-input" name="file" aria-describedby="file-hint"
+                   accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
+            <p id="file-hint" class="hint">PNG, JPEG, WebP, GIF or BMP, up to 10 MB.</p>
+          </div>
+          <div class="form-row">
+            <label for="k-select">Number of colours</label>
+            <select id="k-select" name="k">
+              <option value="">Automatic (best silhouette score)</option>
+              <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              <option>7</option><option>8</option><option>9</option><option>10</option>
+            </select>
+            <button type="submit" class="push-btn" id="extract-btn">
+              <span class="push-top">Extract palette</span>
+              <span class="push-bottom" aria-hidden="true"></span>
+              <span class="push-base" aria-hidden="true"></span>
+            </button>
+          </div>
+        </form>
+        <h3 id="samples-heading">Or try a sample image</h3>
+        <ul id="samples" class="samples" aria-labelledby="samples-heading"></ul>
+      </div>
+      <div id="extract-error" class="notice error" role="alert" hidden></div>
+      <div id="result" hidden></div>
+    </section>
+
+    <!-- ===================================================== Library -->
+    <section id="panel-library" role="tabpanel" aria-labelledby="tab-library" tabindex="0" hidden>
+      <h2>Library &amp; ranking</h2>
+      <div class="form-row">
+        <label for="scope-select">Show</label>
+        <select id="scope-select">
+          <option value="saved">My saved palettes</option>
+          <option value="all">All extracted palettes</option>
+        </select>
+      </div>
+      <div id="library-body"></div>
+    </section>
+
+    <!-- ===================================================== Contrast -->
+    <section id="panel-contrast" role="tabpanel" aria-labelledby="tab-contrast" tabindex="0" hidden>
+      <h2>Contrast checker</h2>
+      <p class="lead">Check a text and background colour against the WCAG 2 contrast thresholds.</p>
+      <div class="card">
+        <form id="contrast-form" class="color-form" novalidate>
+          <div class="color-field">
+            <label for="fg-hex">Text colour (HEX)</label>
+            <div class="color-inputs">
+              <input id="fg-hex" value="#1C5CAB" maxlength="7" spellcheck="false" autocomplete="off">
+              <input type="color" id="fg-pick" value="#1c5cab" aria-label="Text colour picker">
+            </div>
+          </div>
+          <button type="button" id="swap-btn" class="btn">Swap colours</button>
+          <div class="color-field">
+            <label for="bg-hex">Background colour (HEX)</label>
+            <div class="color-inputs">
+              <input id="bg-hex" value="#FFFFFF" maxlength="7" spellcheck="false" autocomplete="off">
+              <input type="color" id="bg-pick" value="#ffffff" aria-label="Background colour picker">
+            </div>
+          </div>
+        </form>
+        <div id="contrast-error" class="notice error" role="alert" hidden></div>
+        <div id="contrast-result" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- ===================================================== Harmony -->
+    <section id="panel-harmony" role="tabpanel" aria-labelledby="tab-harmony" tabindex="0" hidden>
+      <h2>Harmony suggestions</h2>
+      <p class="lead">Colour-wheel schemes built from a base colour. Select any colour to copy its HEX value.</p>
+      <div class="card">
+        <form id="harmony-form" class="color-form" novalidate>
+          <div class="color-field">
+            <label for="base-hex">Base colour (HEX)</label>
+            <div class="color-inputs">
+              <input id="base-hex" value="#2A78D6" maxlength="7" spellcheck="false" autocomplete="off">
+              <input type="color" id="base-pick" value="#2a78d6" aria-label="Base colour picker">
+            </div>
+          </div>
+          <button type="submit" class="btn primary">Suggest harmonies</button>
+        </form>
+        <div id="harmony-error" class="notice error" role="alert" hidden></div>
+      </div>
+      <div id="harmony-result"></div>
+    </section>
+
+    <!-- ===================================================== Developers -->
+    <section id="panel-developers" role="tabpanel" aria-labelledby="tab-developers" tabindex="0" hidden>
+      <h2>Developers</h2>
+      <p class="lead">PaletteAI exposes a documented REST API, and plugins can add result panels and API routes
+        without changing the core app.</p>
+      <div class="card">
+        <h3>API documentation</h3>
+        <ul class="links">
+          <li><a href="/docs">Interactive API reference (Swagger UI)</a></li>
+          <li><a href="/redoc">API reference (ReDoc)</a></li>
+          <li><a href="/openapi.json">OpenAPI 3 document (JSON)</a></li>
+        </ul>
+        <p class="hint">Plugin guide: <code>docs/PLUGINS.md</code>. Local example: <code>plugins/tints_and_shades</code>.
+          Webhook example: <code>examples/webhook_plugin.py</code>.</p>
+      </div>
+      <div class="card">
+        <h3 id="plugins-heading">Installed plugins</h3>
+        <div id="plugins-list"></div>
+      </div>
+      <div class="card">
+        <h3>Register a webhook plugin</h3>
+        <p class="hint">PaletteAI will POST a <code>PanelRequest</code> to the hook URL and show the returned
+          <code>Panel</code> in the chosen place.</p>
+        <form id="plugin-form" class="stack-form">
+          <div><label for="plugin-name">Name</label>
+            <input id="plugin-name" required minlength="2" maxlength="40" pattern="[A-Za-z0-9 _.\-]{2,40}"></div>
+          <div><label for="plugin-url">Hook URL</label>
+            <input id="plugin-url" type="url" required placeholder="http://127.0.0.1:8001/hook"></div>
+          <div><label for="plugin-desc">Description (optional)</label>
+            <input id="plugin-desc" maxlength="200"></div>
+          <fieldset>
+            <legend>Show its panel</legend>
+            <label class="check"><input type="checkbox" name="slot" value="palette.result" checked> Under each extracted palette</label>
+            <label class="check"><input type="checkbox" name="slot" value="library"> On the Library tab</label>
+          </fieldset>
+          <button type="submit" class="btn primary">Register plugin</button>
+        </form>
+        <div id="plugin-error" class="notice error" role="alert" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>PaletteAI · CS698B course project · <a href="/docs">API docs</a></p>
+  </footer>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

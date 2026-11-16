@@ -1,0 +1,121 @@
+/* PaletteAI header logo: animated cube stack.
+   Adapted from a loader by Admin12121 on Uiverse.io (third-party CSS).
+   Changes: scaled down into a 56px tile, scoped under .brand-logo, vendor-prefixed
+   duplicates removed, mask colour follows the theme, paused for reduced motion. */
+.brand-logo {
+  position: relative; flex: none; width: 44px; height: 44px; pointer-events: none;
+  /* No tile behind the logo. The original hides the falling cubes behind two panels painted
+     in the page colour; our page is a gradient, so the same V-shaped cut is done with a clip. */
+  animation: logo-clip 3s linear forwards infinite;
+}
+@keyframes logo-clip {
+  0%, 65.9% { clip-path: polygon(-14px -24px, 100px -24px, 100px 52px, 25.3px 52px, -14px 52px); }
+  66%, 100% { clip-path: polygon(-14px -24px, 100px -24px, 100px 10.7px, 25.3px 38.6px, -14px 23.9px); }
+}
+.brand-logo .stage { position: absolute; left: 7px; top: -4px; width: 200px; height: 320px; transform: scale(.183); transform-origin: 0 0; }
+
+.brand-logo .loader {
+  --duration: 3s;
+  --primary: rgba(39, 94, 254, 1);
+  --primary-light: #2f71ff;
+  --primary-rgba: rgba(39, 94, 254, 0);
+  width: 200px; height: 320px; position: relative; transform-style: preserve-3d;
+}
+.brand-logo .loader::before, .brand-logo .loader::after {
+  --r: 20.5deg;
+  content: ""; width: 320px; height: 140px; position: absolute; right: 32%; bottom: -11px;
+  display: none;                                    /* replaced by the logo-clip animation above */
+  transform: translateZ(200px) rotate(var(--r));
+  animation: logo-mask var(--duration) linear forwards infinite;
+}
+.brand-logo .loader::after { --r: -20.5deg; right: auto; left: 32%; }
+
+.brand-logo .ground {
+  position: absolute; left: -50px; bottom: -120px; transform-style: preserve-3d;
+  transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1);
+}
+.brand-logo .ground div {
+  transform: rotateX(90deg) rotateY(0deg) translate(-48px, -120px) translateZ(100px) scale(0);
+  width: 200px; height: 200px;
+  background: linear-gradient(45deg, var(--primary) 0%, var(--primary) 50%, var(--primary-light) 50%, var(--primary-light) 100%);
+  transform-style: preserve-3d;
+  animation: logo-ground var(--duration) linear forwards infinite;
+}
+.brand-logo .ground div::before, .brand-logo .ground div::after {
+  --rx: 90deg; --ry: 0deg; --x: 44px; --y: 162px; --z: -50px;
+  content: ""; width: 156px; height: 300px; opacity: 0; position: absolute;
+  background: linear-gradient(var(--primary), var(--primary-rgba));
+  transform: rotateX(var(--rx)) rotateY(var(--ry)) translate(var(--x), var(--y)) translateZ(var(--z));
+  animation: logo-ground-shine var(--duration) linear forwards infinite;
+}
+.brand-logo .ground div::after { --rx: 90deg; --ry: 90deg; --x: 0; --y: 177px; --z: 150px; }
+
+.brand-logo .box {
+  --x: 0; --y: 0;
+  position: absolute; animation: var(--duration) linear forwards infinite;
+  transform: translate(var(--x), var(--y));
+}
+.brand-logo .box div {
+  background-color: var(--primary); width: 48px; height: 48px; position: relative; transform-style: preserve-3d;
+  animation: var(--duration) ease forwards infinite;
+  transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0);
+}
+.brand-logo .box div::before, .brand-logo .box div::after {
+  --rx: 90deg; --ry: 0deg; --z: 24px; --y: -24px; --x: 0;
+  content: ""; position: absolute; background-color: inherit; width: inherit; height: inherit;
+  transform: rotateX(var(--rx)) rotateY(var(--ry)) translate(var(--x), var(--y)) translateZ(var(--z));
+  filter: brightness(var(--b, 1.2));
+}
+.brand-logo .box div::after { --rx: 0deg; --ry: 90deg; --x: 24px; --y: 0; --b: 1.4; }
+
+.brand-logo .box0 { --x: -220px; --y: -120px; left: 58px; top: 108px; animation-name: logo-move0; }
+.brand-logo .box1 { --x: -260px; --y: 120px;  left: 25px; top: 120px; animation-name: logo-move1; }
+.brand-logo .box2 { --x: 120px;  --y: -190px; left: 58px; top: 64px;  animation-name: logo-move2; }
+.brand-logo .box3 { --x: 280px;  --y: -40px;  left: 91px; top: 120px; animation-name: logo-move3; }
+.brand-logo .box4 { --x: 60px;   --y: 200px;  left: 58px; top: 132px; animation-name: logo-move4; }
+.brand-logo .box5 { --x: -220px; --y: -120px; left: 25px; top: 76px;  animation-name: logo-move5; }
+.brand-logo .box6 { --x: -260px; --y: 120px;  left: 91px; top: 76px;  animation-name: logo-move6; }
+.brand-logo .box7 { --x: -240px; --y: 200px;  left: 58px; top: 87px;  animation-name: logo-move7; }
+.brand-logo .box0 div { animation-name: logo-scale0; }
+.brand-logo .box1 div { animation-name: logo-scale1; }
+.brand-logo .box2 div { animation-name: logo-scale2; }
+.brand-logo .box3 div { animation-name: logo-scale3; }
+.brand-logo .box4 div { animation-name: logo-scale4; }
+.brand-logo .box5 div { animation-name: logo-scale5; }
+.brand-logo .box6 div { animation-name: logo-scale6; }
+.brand-logo .box7 div { animation-name: logo-scale7; }
+
+@keyframes logo-move0 { 12% { transform: translate(var(--x), var(--y)); } 25%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move1 { 16% { transform: translate(var(--x), var(--y)); } 29%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move2 { 20% { transform: translate(var(--x), var(--y)); } 33%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move3 { 24% { transform: translate(var(--x), var(--y)); } 37%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move4 { 28% { transform: translate(var(--x), var(--y)); } 41%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move5 { 32% { transform: translate(var(--x), var(--y)); } 45%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move6 { 36% { transform: translate(var(--x), var(--y)); } 49%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+@keyframes logo-move7 { 40% { transform: translate(var(--x), var(--y)); } 53%, 52% { transform: translate(0, 0); } 80% { transform: translate(0, -32px); } 90%, 100% { transform: translate(0, 188px); } }
+
+@keyframes logo-scale0 { 6%  { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 14%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale1 { 10% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 18%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale2 { 14% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 22%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale3 { 18% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 26%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale4 { 22% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 30%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale5 { 26% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 34%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale6 { 30% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 38%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+@keyframes logo-scale7 { 34% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(0); } 42%, 100% { transform: rotateY(-47deg) rotateX(-15deg) rotateZ(15deg) scale(1); } }
+
+@keyframes logo-ground {
+  0%, 65% { transform: rotateX(90deg) rotateY(0deg) translate(-48px, -120px) translateZ(100px) scale(0); }
+  75%, 90% { transform: rotateX(90deg) rotateY(0deg) translate(-48px, -120px) translateZ(100px) scale(1); }
+  100% { transform: rotateX(90deg) rotateY(0deg) translate(-48px, -120px) translateZ(100px) scale(0); }
+}
+@keyframes logo-ground-shine { 0%, 70% { opacity: 0; } 75%, 87% { opacity: .2; } 100% { opacity: 0; } }
+@keyframes logo-mask { 0%, 65% { opacity: 0; } 66%, 100% { opacity: 1; } }
+
+/* People who ask for less motion get the assembled cube, held still. */
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo, .brand-logo .ground div,
+  .brand-logo .ground div::before, .brand-logo .ground div::after, .brand-logo .box, .brand-logo .box div {
+    animation-delay: -1.56s; animation-play-state: paused;
+  }
+}
+@media print { .brand-logo { display: none; } }

@@ -1,0 +1,9 @@
+.venv/
+data/
+crossdev/palette_fixer/data/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+report.pdf
+*.pdf
