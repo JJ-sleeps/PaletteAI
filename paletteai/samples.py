@@ -1,4 +1,9 @@
-"""Built-in sample images, generated locally so the demo needs no downloads."""
+"""Built-in sample images.
+
+Most are drawn here in code. The IIT Kanpur photos ship inside the package
+(paletteai/sample_photos/, cropped to 480x320 from Wikimedia Commons; credits in the
+README), so the demo still needs no downloads.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -13,7 +18,14 @@ SAMPLES = {
     "poster": ("Poster", "Flat five-colour geometric poster"),
     "logo": ("Logo", "Shapes on a transparent background"),
     "mono": ("Monochrome", "Smooth grayscale gradient"),
+    "desert": ("Desert", "Sand dunes under a hazy peach sky"),
+    "neon": ("Neon", "Glowing shapes on a night-blue background"),
+    "pastel": ("Pastel", "Soft blocks with low saturation"),
+    "iitk_library": ("IITK Library", "P.K. Kelkar Library · photo: Lalujbad, CC BY-SA 3.0"),
+    "iitk_computer_centre": ("IITK Computer Centre", "Red brick and bougainvillea · photo: Dr Vinamra, CC BY-SA 4.0"),
+    "iitk_hall2": ("IITK Hall 2", "Lawn with peacocks · photo: Vaibhav.jndl, CC BY-SA 4.0"),
 }
+PHOTO_DIR = Path(__file__).resolve().parent / "sample_photos"
 W, H = 480, 320
 
 
@@ -36,6 +48,10 @@ def _hills(draw: ImageDraw.ImageDraw, base: int, amp: int, period: float, phase:
 
 
 def _make(name: str) -> Image.Image:
+    photo = PHOTO_DIR / f"{name}.jpg"
+    if photo.exists():
+        with Image.open(photo) as im:
+            return im.convert("RGB")
     rng = np.random.default_rng(sum(map(ord, name)))
     if name == "sunset":
         im = _noisy(_gradient([(0, (58, 36, 110)), (0.45, (214, 84, 96)), (0.7, (247, 150, 70)), (1, (252, 214, 120))]), rng, 3)
@@ -72,6 +88,29 @@ def _make(name: str) -> Image.Image:
     if name == "mono":
         xs = np.linspace(20, 235, W)
         return _noisy(np.repeat(np.repeat(xs[None, :, None], H, axis=0), 3, axis=2), rng, 2)
+    if name == "desert":
+        im = _noisy(_gradient([(0, (150, 190, 214)), (0.35, (236, 206, 182)), (0.55, (248, 222, 190)), (1, (240, 200, 150))]), rng, 3)
+        d = ImageDraw.Draw(im)
+        for base, amp, per, ph, col in [(190, 24, 70, 0.3, (226, 170, 104)), (235, 20, 52, 2.1, (204, 132, 72)),
+                                        (282, 14, 40, 3.6, (164, 96, 52))]:
+            _hills(d, base, amp, per, ph, col)
+        return _noisy(np.asarray(im, dtype=np.float64), rng, 4)
+    if name == "neon":
+        im = _noisy(_gradient([(0, (14, 16, 46)), (1, (30, 14, 56))]), rng, 3)
+        d = ImageDraw.Draw(im)
+        for box, col in [((60, 70, 210, 220), (255, 46, 160)), ((250, 40, 420, 210), (0, 220, 255))]:
+            for w, a in [(14, .25), (8, .5), (3, 1.0)]:      # soft glow, then a bright core
+                d.ellipse(box, outline=tuple(int(c * a + 20 * (1 - a)) for c in col), width=w)
+        d.line((40, 270, 440, 270), fill=(255, 230, 60), width=6)
+        return im
+    if name == "pastel":
+        im = Image.new("RGB", (W, H), (250, 246, 240))
+        d = ImageDraw.Draw(im)
+        cols = [(246, 196, 200), (190, 222, 236), (204, 232, 198), (250, 226, 170), (214, 200, 238), (248, 212, 184)]
+        for i, col in enumerate(cols):
+            x, y = 24 + (i % 3) * 148, 24 + (i // 3) * 140
+            d.rounded_rectangle((x, y, x + 132, y + 124), radius=18, fill=col)
+        return im
     raise KeyError(name)
 
 

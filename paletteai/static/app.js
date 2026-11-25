@@ -150,13 +150,19 @@ function initProfile() {
   try { state.user = localStorage.getItem('paletteai.user') || 'guest'; } catch (e) { /* private mode */ }
   if (!/^[A-Za-z0-9_.-]{1,40}$/.test(state.user)) state.user = 'guest';
   const input = $('#user-input');
+  const apply = $('#user-apply');
   input.value = state.user;
+  // "Use" only lights up when the name differs from the active one.
+  const sync = () => { apply.disabled = !input.value.trim() || input.value.trim() === state.user; };
+  input.addEventListener('input', sync);
   $('#profile-form').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     if (!input.checkValidity()) { input.reportValidity(); return; }
     state.user = input.value.trim();
+    input.value = state.user;
+    sync();
     try { localStorage.setItem('paletteai.user', state.user); } catch (e) { /* private mode */ }
-    announce(`Switched to profile ${state.user}`);
+    announce(`Now using ${state.user}'s saved palettes, likes and ranking.`);
     if (state.palette) openPalette(state.palette.id, false);
     if (!$('#panel-library').hidden) loadLibrary();
   });
@@ -208,19 +214,47 @@ async function loadSamples() {
 
 const kQuery = () => ($('#k-select').value ? '?k=' + $('#k-select').value : '');
 
+// Loading state shown where the result will appear. Waits 200 ms first so a stored
+// (cached) result, which comes back almost at once, doesn't flash the loader.
+function showLoader() {
+  const result = $('#result');
+  const before = { hidden: result.hidden, kids: [...result.childNodes] };
+  const timer = setTimeout(() => {
+    result.hidden = false;
+    result.replaceChildren(h('div', { class: 'card extract-loading' },
+      h('div', { class: 'swatch-loader', 'aria-hidden': 'true' }, ...[0, 1, 2, 3, 4].map(() => h('span'))),
+      h('p', { text: 'Extracting palette…' }),
+      h('p', { class: 'meta', text: $('#k-select').value
+        ? `Sampling pixels and grouping them into ${$('#k-select').value} colours`
+        : 'Sampling pixels and testing 3–8 colour counts' })));
+    $('#result').scrollIntoView({ block: 'nearest' });
+  }, 200);
+  return {
+    cancel: () => clearTimeout(timer),          // success: the real result replaces it
+    restore: () => {                            // failure: put back what was there before
+      clearTimeout(timer);
+      result.replaceChildren(...before.kids);
+      result.hidden = before.hidden;
+    },
+  };
+}
+
 async function extract(request) {
   const btn = $('#extract-btn');
   showError($('#extract-error'), '');
   btn.disabled = true;
   announce('Extracting palette…');
+  const loader = showLoader();
   try {
     const { palette, cached } = await request();
     // Re-read with the current profile so saved / feedback state is right.
     const mine = state.user === 'guest' ? palette : await api(`/palettes/${palette.id}?${userParam()}`);
+    loader.cancel();
     renderResult(mine, cached);
     announce(`Palette ready: ${mine.k} colours${cached ? ' (loaded from the database)' : ''}.`);
-    $('#result-heading').focus();
+    showResult();
   } catch (e) {
+    loader.restore();
     showError($('#extract-error'), e.message);
     announce('');
   } finally {
@@ -248,12 +282,22 @@ function initUpload() {
   zone.addEventListener('drop', (ev) => send(ev.dataTransfer.files[0]));
 }
 
+// Bring a freshly rendered result to the top of the screen and give it keyboard focus.
+// focus() on its own only scrolls until the heading peeks in at the bottom edge.
+function showResult() {
+  const heading = $('#result-heading');
+  if (!heading) return;
+  const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  heading.focus({ preventScroll: true });
+  $('#result').scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' });
+}
+
 async function openPalette(id, switchTab = true) {
   try {
     const palette = await api(`/palettes/${id}?${userParam()}`);
     if (switchTab) selectTab('extract');
     renderResult(palette, null);
-    if (switchTab) $('#result-heading').focus();
+    if (switchTab) showResult();
   } catch (e) {
     announce(e.message);
   }

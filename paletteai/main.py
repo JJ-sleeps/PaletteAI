@@ -81,6 +81,16 @@ def create_app(data_dir: Path | str | None = None, plugins_dir: Path | str | Non
     static_dir = PACKAGE_DIR / "static"
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    @app.middleware("http")
+    async def _revalidate_static(request: Request, call_next):
+        # Browsers must check back before reusing a cached script or stylesheet, so an
+        # edited app.js shows up on the next reload. Unchanged files still come back as
+        # a cheap 304 thanks to StaticFiles' ETag.
+        response = await call_next(request)
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/", include_in_schema=False)
     def index():
         return FileResponse(static_dir / "index.html", headers={"Cache-Control": "no-cache"})

@@ -53,7 +53,7 @@ def test_k_out_of_range_rejected(client):
 
 def test_samples_and_previews(client):
     samples = client.get("/api/v1/samples").json()
-    assert len(samples) == 6
+    assert len(samples) == 12
     for s in samples:
         r = client.post(f"/api/v1/samples/{s['id']}/extract")
         assert r.status_code == 200, (s, r.text)

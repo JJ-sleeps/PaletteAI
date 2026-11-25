@@ -19,7 +19,8 @@ python -m venv .venv
 
 Open <http://127.0.0.1:8000>. API reference: <http://127.0.0.1:8000/docs>.
 (On macOS/Linux use `.venv/bin/python`.) No internet connection or external
-service is needed; six sample images are generated locally on first start.
+service is needed; twelve sample images are ready on first start (nine drawn in code,
+three IIT Kanpur photos shipped in `paletteai/sample_photos/`).
 
 Run the tests:
 
@@ -62,8 +63,19 @@ FastAPI, Uvicorn, Pydantic, python-multipart (web framework), Pillow (image
 decoding), NumPy (array maths), httpx (webhook calls), pytest (tests). The
 colour-vision matrices are from Machado, Oliveira and Fernandes (2009). The
 pixel-art theme switch (CSS and images) is adapted from a Uiverse.io design by
-zl306, and the "Extract palette" 3D button from one by
-njesenberger, the animated cube logo from a loader by Admin12121, and the pixel-art header
-blocks from a design by Pinparker. The
-K-Means, silhouette, colour conversion, contrast, harmony and ranking code is
-written for this project.
+zl306, the "Extract palette" 3D button from one by njesenberger, the animated cube
+logo from a loader by Admin12121, the extraction loader from one by Donewenfu, and
+the pixel-art name field from an input by xbeat_5120 (all MIT). The K-Means,
+silhouette, colour conversion, contrast, harmony and ranking code is written for
+this project.
+
+### Sample photos
+
+The three IIT Kanpur samples are photos from Wikimedia Commons, centre-cropped and
+resized to 480 × 320. Each keeps its original licence:
+
+| Sample | Original | Author | Licence |
+|---|---|---|---|
+| IITK Library | [P.K.kelkar library iit kanpur.jpg](https://commons.wikimedia.org/wiki/File:P.K.kelkar_library_iit_kanpur.jpg) | Lalujbad | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
+| IITK Computer Centre | [Computer Center at IIT Kanpur India.jpg](https://commons.wikimedia.org/wiki/File:Computer_Center_at_IIT_Kanpur_India.jpg) | Dr Vinamra | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |
+| IITK Hall 2 | [Hall 2 IIT Kanpur.jpg](https://commons.wikimedia.org/wiki/File:Hall_2_IIT_Kanpur.jpg) | Vaibhav.jndl | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) |

@@ -79,6 +79,34 @@ def _contrast(a: str, b: str) -> float:
     return C.contrast_ratio(C.hex_to_rgb(a), C.hex_to_rgb(b))
 
 
+def infer_roles(palette: list[str]) -> tuple[str | None, str | None]:
+    """Guess (foreground, background) for a palette ordered by coverage, largest first.
+
+    VibeCheck sends no text/background roles, so we follow its own example plugin:
+    the largest colour is the background, and the colour with the best contrast
+    against it is the text.
+    """
+    if len(palette) < 2:
+        return None, None
+    bg = palette[0]
+    fg = max(palette[1:], key=lambda c: _contrast(c, bg))
+    return fg, bg
+
+
+def recolour(rgb: np.ndarray, plan: list[str], proposed: list[str]) -> np.ndarray:
+    """Apply the palette swaps to an image (H x W x 3, 0-255).
+
+    Each pixel belongs to its nearest plan colour (in CIELAB). Pixels of a swapped colour are shifted by
+    the Lab difference between the old and new colour, so shading and texture inside that region survive.
+    """
+    lab = C.rgb_to_lab(rgb.astype(np.float64))
+    plan_lab = np.array([_lab(p) for p in plan])
+    shift = np.array([_lab(n) - _lab(p) for p, n in zip(plan, proposed)])
+    nearest = ((lab[..., None, :] - plan_lab) ** 2).sum(-1).argmin(-1)
+    out = C.lab_to_rgb(lab + shift[nearest])
+    return np.clip(np.round(out), 0, 255).astype(np.uint8)
+
+
 def key_pair(palette: list[str], foreground: str | None = None, background: str | None = None) -> tuple[int, int] | None:
     """Indices of the palette's text/background pair.
 

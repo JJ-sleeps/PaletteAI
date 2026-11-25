@@ -19,7 +19,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from . import fixer
-from .client import VibeCheckClient, parse_event
+from .client import VibeCheckClient, is_own_rescore, parse_event
 
 TITLE = "Palette Fixer & Re-Scorer"
 LOG_PATH = Path(os.environ.get("PALETTE_FIXER_DB", Path(__file__).parent / "data" / "fixer_log.db"))
@@ -43,55 +43,69 @@ def _log(check_id: str, team_id: str, status: str, payload: dict) -> None:
 
 
 # ---------------------------------------------------------------- panel building
-def _swatches(label: str, colors: list[str]) -> dict:
-    return {"type": "swatches", "label": label, "colors": [{"hex": c, "label": c} for c in colors]}
-
-
-def _fallback(message: str, extra: list | None = None) -> dict:
-    return {"title": TITLE, "blocks": [{"type": "status", "level": "warn", "text": message}] + (extra or [])}
+# VibeCheck draws a Panel: {title, summary?, metrics?: [{label, value, unit?}], items?: [{text, ok?}],
+# chart?: {type, title?, x_label?, y_label?, points: [{label, value}]}} (backend/vibe/schemas.py).
+def _fallback(message: str, palette: list[str] | None = None) -> dict:
+    panel = {"title": TITLE, "summary": message}
+    if palette:
+        panel["items"] = [{"text": "Colours in this check: " + ", ".join(palette)}]
+    return panel
 
 
 def build_panel(info: dict, fix: dict, rescored: dict | None, rescore_error: str | None) -> dict:
-    blocks: list[dict] = []
-    if not fix["swaps"]:
-        level, text = ("ok", "Every colour is already close to the team's signature palette. No changes suggested.") \
-            if not fix["mismatches"] else ("warn", "Off-brand colours were found, but no safe replacement exists.")
-        blocks.append({"type": "status", "level": level, "text": text})
+    swaps = fix["swaps"]
+    if not swaps:
+        summary = ("Every main colour is already close to your team's palette. No changes suggested."
+                   if not fix["mismatches"] else "Some colours are off-brand, but no team colour can replace them without hurting readability.")
     else:
-        blocks.append({"type": "status", "level": "info",
-                       "text": f"{len(fix['swaps'])} colour swap(s) suggested out of {fix['mismatches']} off-brand colour(s). "
-                               "These are recommendations; the poster itself is not edited."})
-    blocks.append(_swatches("Original palette", fix["original"]))
-    if fix["swaps"]:
-        blocks.append(_swatches("Suggested palette", fix["proposed"]))
-        blocks.append({
-            "type": "table", "caption": "Suggested swaps (dE = CIEDE2000 distance to the nearest signature colour; lower is closer)",
-            "columns": ["Replace", "With", "dE before", "dE after", "Why"],
-            "rows": [[s["from"], s["to"], str(s["delta_e_before"]), str(s["delta_e_after"]), s["explanation"]] for s in fix["swaps"]],
-        })
-    for s in fix["skipped"]:
-        blocks.append({"type": "text", "text": f"{s['color']}: {s['reason']}"})
+        summary = (f"{len(swaps)} colour swap{'s' if len(swaps) > 1 else ''} would bring this closer to your team's palette "
+                   "while keeping text readable. These are suggestions; your design is not changed.")
+
+    metrics: list[dict] = []
+    original = info.get("score")
+    if original is not None:
+        metrics.append({"label": "VibeCheck score now", "value": original})
+    if swaps and rescored and rescored.get("score") is not None:
+        metrics.append({"label": "Score with these swaps", "value": rescored["score"]})
+    metrics.append({"label": "Colours swapped", "value": f"{len(swaps)} of {len(fix['original'])}"})
     c = fix["contrast"]
     if c:
-        blocks.append({
-            "type": "status", "level": "ok" if c["passes_aa"] else "warn",
-            "text": f"Text contrast ({c['new_foreground']} on {c['new_background']}): {c['before']}:1 before, {c['after']}:1 after. "
-                    f"{'Passes' if c['passes_aa'] else 'Fails'} WCAG AA for normal text (4.5:1).",
-        })
-    original = info.get("score")
-    blocks.append({"type": "stat", "label": "Original VibeCheck score", "value": "not provided" if original is None else str(original)})
-    if fix["swaps"]:
+        metrics.append({"label": "Text contrast after", "value": c["after"], "unit": ":1"})
+
+    items: list[dict] = []
+    for reason in info.get("colour_reasons", [])[:1]:
+        items.append({"ok": False, "text": f"VibeCheck: {reason}"})
+    for s in swaps:
+        items.append({"text": f"Replace {s['from']} with {s['to']} ({s['kind']}): {s['delta_e_before']} -> {s['delta_e_after']} "
+                              "ΔE from the team palette."})
+    for s in fix["skipped"]:
+        items.append({"ok": False, "text": f"{s['color']}: {s['reason']}"})
+    if c:
+        items.append({"ok": c["passes_aa"],
+                      "text": f"Text {c['new_foreground']} on {c['new_background']}: {c['before']}:1 before, {c['after']}:1 after "
+                              f"({'passes' if c['passes_aa'] else 'fails'} WCAG AA, 4.5:1)."})
+    if swaps:
         if rescored and rescored.get("score") is not None:
-            blocks.append({"type": "stat", "label": "Score returned for the suggested palette", "value": str(rescored["score"])})
-            if isinstance(original, (int, float)) and isinstance(rescored["score"], (int, float)):
-                diff = rescored["score"] - original
-                word = "higher than" if diff > 0 else "lower than" if diff < 0 else "the same as"
-                blocks.append({"type": "text", "text": f"VibeCheck scored the suggested palette {abs(diff):g} point(s) {word} the original. "
-                                                       "This is the score VibeCheck returned, not a prediction."})
+            if isinstance(original, (int, float)):
+                diff = round(rescored["score"] - original, 1)
+                word = "higher" if diff > 0 else "lower" if diff < 0 else "no change"
+                change = f"{abs(diff):g} points {word}" if diff else word
+            else:
+                change = "see score"
+            where = f" (saved as check #{rescored['check_id']} in History)" if rescored.get("check_id") else ""
+            items.append({"ok": None if not isinstance(original, (int, float)) else rescored["score"] >= original,
+                          "text": f"VibeCheck re-scored your images recoloured with these swaps: {change}{where}. "
+                                  "This is VibeCheck's own score, not our prediction."})
         else:
-            blocks.append({"type": "status", "level": "warn",
-                           "text": f"Re-scoring is unavailable ({rescore_error or 'no score returned'}), so no new score is shown."})
-    return {"title": TITLE, "blocks": blocks}
+            items.append({"ok": None, "text": f"No re-score: {rescore_error or 'VibeCheck returned no score'}."})
+
+    panel = {"title": TITLE, "summary": summary, "metrics": metrics, "items": items}
+    if swaps:
+        panel["chart"] = {"type": "bar", "title": "Average distance from the team palette (lower is closer)",
+                          "y_label": "ΔE (CIEDE2000)",
+                          "points": [{"label": "Now", "value": fix["mean_delta_e_before"]},
+                                     {"label": "With swaps", "value": fix["mean_delta_e_after"]}]}
+    return panel
 
 
 # ---------------------------------------------------------------- endpoints
@@ -115,14 +129,16 @@ def hook(event: dict) -> dict:
     return handle_event(event)
 
 
+HOST_LIMIT_S = 4.5     # VibeCheck waits 5 s for a plugin; leave a margin
+
+
 def handle_event(event: dict, team_palette=None, rescore=None) -> dict:
     """The plugin itself: ``check.completed`` event in, result panel out.
 
-    This is the entry point for running INSIDE the host app (no separate server):
-    the host imports this module and calls ``handle_event(event, team_palette, rescore)``
-    with its own functions ``team_palette(team_id) -> colours`` and
-    ``rescore(team_id, palette, check_id) -> {"score": n}``.
-    When those are omitted, the host's REST API at ``event["api_base"]`` is used instead.
+    In-app mode (no separate server): the host imports this module and calls
+    ``handle_event(event, team_palette, rescore)`` with its own functions
+    ``team_palette(team_id) -> colours`` and ``rescore(team_id, palette, check_id) -> {"score": n}``.
+    When those are omitted, VibeCheck's REST API at ``event["api_base"]`` is used instead.
     """
     started = time.perf_counter()
     info = parse_event(event)
@@ -136,40 +152,48 @@ def handle_event(event: dict, team_palette=None, rescore=None) -> dict:
 
     if event.get("event") not in (None, "check.completed"):
         return done("ignored", _fallback(f"Ignored event '{event.get('event')}'. This plugin handles check.completed."))
+    if is_own_rescore(info):          # the check we submitted ourselves to re-score: don't recurse
+        return done("own_rescore", _fallback("This check is Palette Fixer's re-score of a recoloured image."))
     if not plan:
-        return done("no_palette", _fallback("The check result contained no usable colours, so there is nothing to fix."))
+        return done("no_palette", _fallback("This check has no colours to work with, so there is nothing to fix."))
     if not info["team_id"] or (team_palette is None and not info["api_base"]):
-        return done("no_api", _fallback("The event had no api_base or team id, so the team's signature palette could not be fetched.",
-                                        [_swatches("Original palette", plan)]))
+        return done("no_api", _fallback("The event had no api_base or team id, so the team's palette could not be fetched.", plan))
 
     client = VibeCheckClient(info["api_base"], transport=app.state.transport) if info["api_base"] else None
     get_palette = team_palette or client.team_palette
-    do_rescore = rescore or (client.rescore if client else None)
     try:
         try:
             signature, bad_sig = fixer.clean_palette(get_palette(info["team_id"]))
         except Exception as exc:        # host function or HTTP call failed: degrade, never crash the host
             return done("palette_unavailable", _fallback(
-                f"The team's signature palette could not be retrieved from VibeCheck ({type(exc).__name__}). No suggestions were made.",
-                [_swatches("Original palette", plan)]))
+                f"Couldn't get the team's palette from VibeCheck ({type(exc).__name__}), so no suggestions were made.", plan))
         if not signature:
-            return done("no_signature", _fallback("The team has no signature palette yet, so there is nothing to compare against.",
-                                                  [_swatches("Original palette", plan)]))
-        fg = fixer.clean_palette([info["foreground"]])[0]
-        bg = fixer.clean_palette([info["background"]])[0]
-        fix = fixer.propose_fix(plan, signature, fg[0] if fg else None, bg[0] if bg else None,
-                                fixer.clean_palette(info["flagged"])[0])
+            return done("no_signature", _fallback("This team has no signature palette yet, so there is nothing to compare against.", plan))
+        fg, bg = info["foreground"], info["background"]
+        if not (fg and bg):
+            fg, bg = fixer.infer_roles(plan)
+        fg = (fixer.clean_palette([fg])[0] or [None])[0]
+        bg = (fixer.clean_palette([bg])[0] or [None])[0]
+        fix = fixer.propose_fix(plan, signature, fg, bg, fixer.clean_palette(info["flagged"])[0])
         rescored, error = None, None
         if fix["swaps"]:
+            left = HOST_LIMIT_S - (time.perf_counter() - started)
             try:
-                if do_rescore is None:
+                if rescore is not None:
+                    rescored = rescore(info["team_id"], fix["proposed"], info["check_id"])
+                elif client is None:
                     raise RuntimeError("no scoring function")
-                rescored = do_rescore(info["team_id"], fix["proposed"], info["check_id"])
+                elif left < 1.0:
+                    raise TimeoutError("not enough time left before VibeCheck's 5-second limit")
+                else:
+                    rescored = client.rescore(info, fix, timeout=left - 0.5)
+            except LookupError as exc:
+                error = str(exc)
             except Exception as exc:
-                error = type(exc).__name__
+                error = f"VibeCheck could not re-score in time ({type(exc).__name__})"
         panel = build_panel(info, fix, rescored, error)
         return done("ok" if not error else "rescore_unavailable", panel, signature=signature,
-                    rejected_signature=bad_sig, fix=fix, rescore=rescored)
+                    rejected_signature=bad_sig, roles={"foreground": fg, "background": bg}, fix=fix, rescore=rescored)
     finally:
         if client:
             client.close()

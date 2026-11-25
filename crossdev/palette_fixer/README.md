@@ -6,20 +6,33 @@ palette towards the team's signature palette without hurting text contrast,
 asks VibeCheck to re-score the suggestion, and returns a panel for VibeCheck's
 result slot. It recommends only; it never edits a poster.
 
-## Status: built against an ASSUMED contract
+## Status: matches VibeCheck's real API, tested against a running VibeCheck
 
-VibeCheck's published API was not available when this was written. Everything
-that depends on it is isolated in **`client.py`** (endpoint paths, event field
-names, registration body). When their OpenAPI document arrives, update that
-file and the panel layout in `app.py::build_panel` if their Panel schema
-differs. The colour engine (`fixer.py`) does not depend on VibeCheck at all.
+Checked against VibeCheck's code ([Pro-Nil/vibecheck](https://github.com/Pro-Nil/vibecheck), `backend/vibe/main.py`)
+and run end to end against VibeCheck in its fake-CLIP test mode on 25 Nov 2026. Everything that depends on
+VibeCheck is in **`client.py`**; the colour engine (`fixer.py`) doesn't depend on it.
 
-| Assumption | Where to change it |
+| VibeCheck contract | Used in |
 |---|---|
-| Event fields: `check_id`, `team.id`, `api_base`, `plan.palette`, `plan.foreground/background`, `score`, `failures[].color` | `client.py::parse_event` |
-| `GET {api_base}/teams/{team_id}/palette` returns `{"colors": [...]}` | `PALETTE_PATH`, `team_palette` |
-| `POST {api_base}/score` with `{team_id, palette, check_id}` returns `{"score": n}` | `SCORE_PATH`, `rescore` |
-| Panel format `{title, blocks[]}` (same block types as PaletteAI's) | `app.py::build_panel` |
+| Event: `check.completed` with `team.id`, `api_base`, `check.{id, kind, score, reasons, plan_palette[{hex, share}], description, inspo_urls}` | `client.py::parse_event` |
+| `GET /teams/{id}/style-profile` → `signature_palette[{hex, share}]` | `team_palette` |
+| `POST /teams/{id}/checks` (multipart `images`, `description`, `kind`, `user`) → `{id, score}` | `rescore` (recoloured images) |
+| Panel `{title, summary, metrics[], items[], chart}` | `app.py::build_panel` |
+| Register: `POST /plugins {"name", "url", "slot": "result"}` | `register` |
+
+**Needed on VibeCheck's side (one line).** `create_check` is `async` and calls `plugins.run_plugins(...)` directly,
+which blocks VibeCheck's server while plugins run, so a plugin can't call VibeCheck back. Our palette lookup and
+re-score then time out. Fix in `backend/vibe/main.py`:
+
+```python
+from starlette.concurrency import run_in_threadpool
+check["plugins"] = await run_in_threadpool(plugins.run_plugins, team_id, "result", {...same event...})
+```
+
+**How re-scoring works.** VibeCheck scores images, not palettes, so the plugin recolours the checked images
+(each pixel moves with its palette colour in CIELAB, keeping texture) and submits them as a new check marked
+`[palette-fixer re-score]`. That check appears in VibeCheck's History; the plugin recognises its own re-score
+checks and skips them, so it never loops. Everything stays inside VibeCheck's 5-second plugin limit.
 
 ## Two ways to attach it to VibeCheck
 

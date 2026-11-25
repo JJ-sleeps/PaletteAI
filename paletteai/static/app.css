@@ -108,21 +108,67 @@ main:focus, [role="tabpanel"]:focus { outline: none; }
 .brand { margin-right: auto; display: flex; flex-wrap: wrap; align-items: center; gap: .15rem .6rem; flex: 1 1 17rem; min-width: 0; }
 .brand p { flex-basis: 100%; }                 /* tagline on its own line, under the name + logo */
 .brand h1 { margin: 0; }
-/* Wordmark: fonts that ship with the OS (no download, works offline). Bahnschrift on
-   Windows, Avenir Next on macOS, then the system UI font. */
-.wordmark {
-  font-family: "Bahnschrift", "Avenir Next", "Segoe UI Variable Display", "Trebuchet MS", system-ui, sans-serif;
-  font-size: 2.1rem; font-weight: 700; font-stretch: 95%; letter-spacing: -.02em; line-height: 1.05;
-}
-.wordmark span {
-  background: linear-gradient(100deg, #275efe 10%, #b3305a 95%);
-  -webkit-background-clip: text; background-clip: text; color: transparent; padding-left: .04em;
-}
-:root[data-theme="dark"] .wordmark span { background-image: linear-gradient(100deg, #86b6ef 10%, #f29ab8 95%); }
-@media (forced-colors: active) { .wordmark span { background: none; color: inherit; } }
+/* Wordmark: 8-bit style lettering drawn as an inline SVG from a hand-made 5x7 pixel font
+   (no font download, works offline). The real text sits in a visually hidden span.
+   Height 30px = 2 screen px per SVG unit, so every glyph pixel lands on whole pixels. */
+.wordmark { line-height: 0; }
+.wordmark-art { display: block; height: 30px; width: auto; }
+.wm-ink { fill: var(--ink); }
+.wm-a { fill: #275efe; }
+.wm-i { fill: #b3305a; }
+.wm-shadow { fill: #b9c8de; }
+:root[data-theme="dark"] .wm-a { fill: #86b6ef; }
+:root[data-theme="dark"] .wm-i { fill: #f29ab8; }
+:root[data-theme="dark"] .wm-shadow { fill: #000; opacity: .7; }
+@media (forced-colors: active) { .wm-ink, .wm-a, .wm-i { fill: CanvasText; } .wm-shadow { display: none; } }
 .brand p { margin: 0; color: var(--muted); font-size: .9375rem; }
-.profile { display: flex; align-items: center; gap: .5rem; }
+.profile { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem .85rem; max-width: 23rem; }
 .profile input { width: 9rem; }
+.profile label { margin-right: .3rem; }        /* room for the pixel field's focus ring */
+.profile-hint { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .8125rem; }
+
+/* Pixel-art name field, matching the pixel theme switch beside it.
+   Adapted from a Uiverse.io input by xbeat_5120 (MIT). Changes: a deeper orange so white
+   text passes WCAG AA (about 4.9:1; the original #ff6b35 is about 2.8:1), the app's own
+   focus ring is kept, and the hover jitter is skipped while typing or for reduced motion. */
+#user-input {
+  appearance: none; border: none; border-radius: 0; min-height: 0;
+  padding: .45em .6em; width: 9.5rem;
+  font: 600 1rem "Courier New", ui-monospace, monospace; color: #fff;
+  background: #c4461c; text-shadow: 1px 1px #000;
+  box-shadow:
+    0 0 0 .15em #000,
+    0 0 0 .3em #fff,
+    0 0 0 .45em #000,
+    0 .3em 0 0 #8a2c0c,
+    0 .3em 0 .15em #000;
+  transition: background .15s steps(1), box-shadow .15s steps(1);
+}
+#user-input::placeholder { color: #fff; opacity: .7; }
+#user-input:focus { background: #a8390f; }
+#user-input:focus-visible {
+  outline: 3px solid var(--focus); outline-offset: 9px; border-radius: 0;
+  box-shadow:
+    0 0 0 .15em #000,
+    0 0 0 .3em #fff,
+    0 0 0 .45em #000,
+    0 .2em 0 0 #00a352,
+    0 .2em 0 .15em #000;
+}
+@media (prefers-reduced-motion: no-preference) {
+  #user-input:hover:not(:focus) { animation: pixel-jitter .3s steps(2) infinite; }
+}
+@keyframes pixel-jitter {
+  0%, 100% { transform: translate(0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, -1px); }
+}
+@media (forced-colors: active) { #user-input { border: 2px solid CanvasText; box-shadow: none; } }
+/* Pin the name field and theme switch to the top row so the switch lines up with the
+   input instead of centring against input + hint. 10px = (40px input - 32px knob) / 2 + 6px knob overhang. */
+.app-header .profile, .app-header .theme-switch { align-self: flex-start; }
+.app-header .theme-switch { margin-top: 10px; }
 main { padding-block: 1.25rem 2.5rem; }
 .app-footer { color: var(--muted); font-size: .875rem; padding-block: 1rem 2rem; border-top: 1px solid var(--hairline); }
 .lead { color: var(--ink-2); max-width: 60ch; }
@@ -142,6 +188,14 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="
   background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
   padding: .45rem .6rem; min-height: 2.5rem;
 }
+/* The native "Choose File" button, styled like the app's own .btn. */
+input[type="file"] { max-width: 100%; color: var(--muted); font-size: .9375rem; }
+input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); cursor: pointer;
+  border: 1px solid var(--border); border-radius: 6px; padding: .45rem .9rem; margin-right: .75rem;
+}
+input[type="file"]::file-selector-button:hover { background: var(--surface-2); }
+.dropzone:hover { border-color: var(--accent); }
 input[type="color"] { width: 2.75rem; height: 2.5rem; padding: 2px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; }
 input[aria-invalid="true"] { border-color: var(--fail); border-width: 2px; }
 .btn {
@@ -223,10 +277,42 @@ fieldset { border: 1px solid var(--hairline); border-radius: 8px; padding: .6rem
 .notice { border: 1px solid var(--border); border-left-width: 6px; border-radius: 6px; padding: .7rem .9rem; margin: .75rem 0; background: var(--surface); }
 .notice.error { border-color: var(--fail); }
 .notice.info { border-left-color: var(--accent); }
+#result { scroll-margin-top: 1rem; }
+/* Extraction loader: bouncing bars adapted from a Uiverse.io loader by Donewenfu (MIT),
+   re-done as five flex bars tinted with the wordmark's blue-to-rose gradient. */
+.extract-loading { display: grid; justify-items: center; gap: .35rem; padding-block: 2.25rem; text-align: center; }
+.extract-loading p { margin: 0; font-weight: 600; }
+.extract-loading .meta { font-weight: 400; }
+.swatch-loader { display: flex; align-items: flex-end; gap: 6px; height: 48px; margin-bottom: .75rem; }
+.swatch-loader span {
+  width: 12px; height: 32px; border-radius: 3px; opacity: .75;
+  animation: swatch-bounce .9s infinite ease-in-out;
+}
+.swatch-loader span:nth-child(1) { background: #275efe; }
+.swatch-loader span:nth-child(2) { background: #5a4ad8; animation-delay: .12s; }
+.swatch-loader span:nth-child(3) { background: #7d3fb2; animation-delay: .24s; }
+.swatch-loader span:nth-child(4) { background: #983787; animation-delay: .36s; }
+.swatch-loader span:nth-child(5) { background: #b3305a; animation-delay: .48s; }
+:root[data-theme="dark"] .swatch-loader span:nth-child(1) { background: #86b6ef; }
+:root[data-theme="dark"] .swatch-loader span:nth-child(2) { background: #a3aceb; }
+:root[data-theme="dark"] .swatch-loader span:nth-child(3) { background: #bea4dc; }
+:root[data-theme="dark"] .swatch-loader span:nth-child(4) { background: #d99fca; }
+:root[data-theme="dark"] .swatch-loader span:nth-child(5) { background: #f29ab8; }
+@keyframes swatch-bounce {
+  0%, 80%, 100% { height: 32px; opacity: .75; }
+  40% { height: 46px; opacity: 1; }
+}
+/* Reduced motion: still bars at staggered heights, no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .swatch-loader span { animation: none; opacity: 1; }
+  .swatch-loader span:nth-child(odd) { height: 40px; }
+}
+/* Bottom-right corner so it never sits on top of the result's Save / Like / Dislike row. */
 .toast {
-  position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 30;
+  position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 30;
   background: var(--ink); color: var(--bg); padding: .6rem 1rem; border-radius: 8px;
-  max-width: min(90vw, 36rem); font-weight: 600;
+  max-width: min(calc(100vw - 2.5rem), 24rem); font-weight: 600;
+  box-shadow: 0 6px 20px rgb(0 0 0 / .25);
 }
 .toast:empty { display: none; }
 .verdict { font-weight: 700; white-space: nowrap; }
@@ -243,13 +329,18 @@ fieldset { border: 1px solid var(--hairline); border-radius: 8px; padding: .6rem
 .dropzone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 1.1rem; background: var(--bg); }
 .dropzone.dragover { border-color: var(--accent); background: var(--surface-2); }
 .dropzone label { display: block; font-weight: 400; margin-bottom: .5rem; }
-.samples { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .6rem; }
+/* Six samples: one even row of six on wide screens, 3 x 2 on mid widths, 2 x 3 on phones. */
+.samples { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+@media (min-width: 560px) { .samples { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .samples { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .sample-btn {
-  width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  padding: .4rem; cursor: pointer; display: grid; gap: .3rem;
+  width: 100%; height: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: .45rem .45rem .6rem; cursor: pointer; display: grid; gap: .3rem; align-content: start;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
 }
-.sample-btn:hover { background: var(--surface-2); }
-.sample-btn img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 5px; display: block;
+.sample-btn:hover { border-color: var(--accent); box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+@media (prefers-reduced-motion: no-preference) { .sample-btn:hover { transform: translateY(-2px); } }
+.sample-btn img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 5px; display: block;
   background: repeating-conic-gradient(#d9d9d9 0 25%, #fff 0 50%) 0 0 / 16px 16px; }
 .sample-btn .name { font-weight: 600; }
 .sample-btn .desc { color: var(--muted); font-size: .8125rem; line-height: 1.3; }

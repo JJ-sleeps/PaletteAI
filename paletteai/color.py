@@ -239,6 +239,8 @@ def color_name(value: str) -> str:
     hue = next(name for limit, name in _HUE_NAMES if deg < limit)
     if hue in ("orange", "yellow") and l > 0.85:
         return "cream"
+    if hue in ("orange", "yellow") and l > 0.6 and float(chroma(hex_to_lab(value))) < 30:
+        return "beige"                     # pale and washed out: sand, khaki, parchment
     if hue in ("orange", "yellow") and l < 0.4:
         hue = "brown"
     elif hue == "red" and l > 0.7:
@@ -246,6 +248,31 @@ def color_name(value: str) -> str:
     tone = "dark " if l < 0.3 else "light " if l > 0.72 else ""
     muted = "muted " if s < 0.35 and not tone else ""
     return f"{tone}{muted}{hue}"
+
+
+def palette_names(hexes: list[str]) -> list[str]:
+    """Names for a whole palette, with repeats told apart by lightness.
+
+    Two clusters can land in the same name bucket ("red", "red"); a reader then can't
+    tell which swatch a label means, so they become "red (darker)" / "red (lighter)".
+    """
+    names = [color_name(h) for h in hexes]
+    groups: dict[str, list[int]] = {}
+    for i, n in enumerate(names):
+        groups.setdefault(n, []).append(i)
+    for name, idx in groups.items():
+        if len(idx) < 2:
+            continue
+        idx.sort(key=lambda i: hex_to_lab(hexes[i])[0])
+        if len(idx) == 2:
+            labels = ["darker", "lighter"]
+        else:
+            labels = ["darkest"] + [f"mid {n}" for n in range(1, len(idx) - 1)] + ["lightest"]
+            if len(idx) == 3:
+                labels[1] = "mid"
+        for i, label in zip(idx, labels):
+            names[i] = f"{name} ({label})"
+    return names
 
 
 def describe(value: str) -> dict:

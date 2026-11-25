@@ -56,6 +56,8 @@ def test_harmonies_and_names():
     assert C.color_name("#000000") == "black"
     assert C.color_name("#0A1E78") == "dark blue"
     assert C.color_name("#808080") == "gray"
+    assert C.color_name("#DDCFA8") == "beige"
+    assert C.palette_names(["#E36D56", "#12558B", "#C14E61"]) == ["red (lighter)", "blue", "red (darker)"]
 
 
 # ------------------------------------------------------------------ ETL

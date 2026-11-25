@@ -35,7 +35,8 @@ def _build_colors(result) -> list[dict]:
             "name": C.color_name(hex_),
         }
     colors = sorted(merged.values(), key=lambda c: -c["share"])
-    for c in colors:
+    for c, name in zip(colors, C.palette_names([c["hex"] for c in colors])):
+        c["name"] = name
         c["share"] = round(c["share"], 4)
     return colors
 
@@ -128,6 +129,9 @@ LEFT JOIN feedback f ON f.palette_id = p.id AND f.user_id = :user
 
 def _palette_dict(row: sqlite3.Row) -> dict:
     colors = json.loads(row["colors_json"])
+    # Names are re-derived on read so palettes stored before a naming fix pick it up.
+    for c, name in zip(colors, C.palette_names([c["hex"] for c in colors])):
+        c["name"] = name
     for c in colors:
         c["percent"] = round(c["share"] * 100, 1)
         c["text_color"] = C.best_text_color(c["hex"])
