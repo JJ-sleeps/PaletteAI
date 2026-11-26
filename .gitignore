@@ -7,3 +7,7 @@ __pycache__/
 
 report.pdf
 *.pdf
+*.pptx
+
+docs/*
+!docs/PLUGINS.md

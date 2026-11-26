@@ -155,7 +155,9 @@ def handle_event(event: dict, team_palette=None, rescore=None) -> dict:
     if is_own_rescore(info):          # the check we submitted ourselves to re-score: don't recurse
         return done("own_rescore", _fallback("This check is Palette Fixer's re-score of a recoloured image."))
     if not plan:
-        return done("no_palette", _fallback("This check has no colours to work with, so there is nothing to fix."))
+        return done("no_palette", _fallback(
+            "This check has no images, so there are no colours to fix. "
+            "Add inspiration images (or check a finished design) to get colour swap suggestions."))
     if not info["team_id"] or (team_palette is None and not info["api_base"]):
         return done("no_api", _fallback("The event had no api_base or team id, so the team's palette could not be fetched.", plan))
 

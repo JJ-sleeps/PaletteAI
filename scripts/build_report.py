@@ -1,4 +1,4 @@
-"""Build comprehensive report.pdf. Run from project root:
+"""Build the final report, report.pdf. Run from project root:
   .venv\\Scripts\\python scripts\\build_report.py
 
 Gathers live empirical facts by running the real codebase, tests, and API
@@ -48,6 +48,7 @@ sys.path.insert(0, str(ROOT))
 from crossdev.palette_fixer import app as fixer_app  # noqa: E402
 from crossdev.palette_fixer import fixer, mock_vibecheck  # noqa: E402
 from paletteai import clustering, color as C, etl, ranking  # noqa: E402
+from paletteai import plugins as pa_plugins  # noqa: E402
 from paletteai.samples import SAMPLES  # noqa: E402
 SAMPLE_TITLES = {k: v[0] for k, v in SAMPLES.items()}
 from paletteai.main import create_app  # noqa: E402
@@ -78,7 +79,7 @@ class NumberedCanvas(canvas.Canvas):
         # Don't draw header on title page
         if self._pageNumber > 1:
             self.drawString(16 * mm, A4[1] - 11 * mm, "PaletteAI: Final Technical Report  |  CS698B Course Project")
-            self.drawRightString(A4[0] - 16 * mm, A4[1] - 11 * mm, "Team FORSAKEN")
+            self.drawRightString(A4[0] - 16 * mm, A4[1] - 11 * mm, "Team LARPERS")
             self.setStrokeColor(colors.HexColor("#cbd5e1"))
             self.setLineWidth(0.5)
             self.line(16 * mm, A4[1] - 12.5 * mm, A4[0] - 16 * mm, A4[1] - 12.5 * mm)
@@ -87,7 +88,7 @@ class NumberedCanvas(canvas.Canvas):
         self.setStrokeColor(colors.HexColor("#cbd5e1"))
         self.setLineWidth(0.5)
         self.line(16 * mm, 13 * mm, A4[0] - 16 * mm, 13 * mm)
-        self.drawString(16 * mm, 9.5 * mm, "Indian Institute of Technology Kanpur (IITK)  |  Department of Computer Science & Engineering")
+        self.drawString(16 * mm, 9.5 * mm, "Indian Institute of Technology Kanpur (IITK)")
         self.drawRightString(A4[0] - 16 * mm, 9.5 * mm, f"Page {self._pageNumber} of {num_pages}")
         self.restoreState()
 
@@ -244,19 +245,19 @@ def draw_arrow(d, x1, y1, x2, y2, color=(2, 132, 199), width=4):
 def arch_diagram_draw(d, w, h):
     d.rectangle([0, 0, w, h], fill=(255, 255, 255))
     # Layer 1: Client
-    draw_box(d, 30, 30, 340, 370, "1. Client Layer", "Vanilla HTML5 / CSS3 / ES6 JS\n5 Interactive Tabs (Extract, Library,\nContrast, Harmony, Developers)\nZero CDN / Zero Build Dependency",
+    draw_box(d, 30, 30, 340, 370, "1. Client Layer", "Plain HTML / CSS / JavaScript\n5 tabs (Extract, Library,\nContrast, Harmony, Developers)\nNo CDN, no build step",
              fill=(240, 249, 255), outline=(2, 132, 199))
     draw_arrow(d, 340, 200, 390, 200)
 
     # Layer 2: API Gateway
-    draw_box(d, 390, 30, 770, 370, "2. Application & API Layer", "FastAPI + Uvicorn Async Server\nStrict Pydantic V2 Validation\nUniform RFC 7807 Error Responses\nInteractive OpenAPI 3.1 & Swagger\nPlugin Engine & Sandbox Isolation",
+    draw_box(d, 390, 30, 770, 370, "2. Application & API Layer", "FastAPI + Uvicorn\nPydantic request/response models\nOne error shape: {code, message}\nOpenAPI 3.1 at /docs\nPlugin system (local + webhook)",
              fill=(248, 250, 252), outline=(13, 54, 107))
     draw_arrow(d, 770, 200, 820, 200)
 
     # Layer 3: Engines & Persistence
-    draw_box(d, 820, 30, 1170, 185, "3. Pure Algorithmic Engines", "CIELAB / sRGB Color Science\nVectorized K-Means++ & Silhouette\nGaussian Kernel Preference Model",
+    draw_box(d, 820, 30, 1170, 185, "3. Colour & ML code (NumPy)", "sRGB / CIELAB, WCAG, CVD\nK-Means++ with silhouette\nKernel preference ranking",
              fill=(254, 243, 199), outline=(217, 119, 6))
-    draw_box(d, 820, 215, 1170, 370, "4. Persistent Storage", "SQLite Relational Store (paletteai.db)\nIdempotent SHA-256 Deduplication\nNormalised JPEG Image Previews",
+    draw_box(d, 820, 215, 1170, 370, "4. Persistent Storage", "SQLite (data/paletteai.db)\nSHA-256 hash skips repeat work\nNormalised image previews",
              fill=(241, 245, 249), outline=(71, 85, 105))
 
 
@@ -303,15 +304,15 @@ def aiml_diagram_draw(d, w, h):
 
 def crossdev_diagram_draw(d, w, h):
     d.rectangle([0, 0, w, h], fill=(255, 255, 255))
-    draw_box(d, 30, 40, 290, 240, "VibeCheck Host", "Team 'rm -rf sleep'\nPoster evaluation engine\nFires check.completed\nCalls /hook or in-process", fill=(240, 249, 255), outline=(2, 132, 199))
+    draw_box(d, 30, 40, 290, 240, "VibeCheck Host", "Team rm -rf sleep\nScores poster plans\nSends check.completed\nto our POST /hook", fill=(240, 249, 255), outline=(2, 132, 199))
     draw_arrow(d, 290, 140, 350, 140)
 
-    draw_box(d, 350, 40, 840, 240, "Palette Fixer Plugin (Our Contribution)",
-             "1. Ingest event & fetch team signature palette via /teams/{id}/palette\n2. Compute CIEDE2000 distance to detect off-brand colors (dE > 10.0)\n3. Propose <= 3 swaps constrained by WCAG AA text contrast (>= 4.5:1)\n4. Submit to host /score endpoint for empirical re-scoring\n5. Log audit trail in SQLite (fixer_log.db)",
+    draw_box(d, 350, 40, 840, 240, "Palette Fixer (our plugin)",
+             "1. Read event, fetch team palette (GET /teams/{id}/style-profile)\n2. CIEDE2000 to nearest team colour; > 10 = off-brand\n3. Up to 3 swaps that keep text at WCAG AA (4.5:1)\n4. Recolour images, re-score via POST /teams/{id}/checks\n5. Log the run in SQLite (fixer_log.db)",
              fill=(248, 250, 252), outline=(13, 54, 107))
     draw_arrow(d, 840, 140, 900, 140)
 
-    draw_box(d, 900, 40, 1160, 240, "UI Panel Reply", "Formatted Result Slot\nSide-by-side Swatches\nSwap Delta-E Table\nContrast Validation\nHost Re-score Comparison",
+    draw_box(d, 900, 40, 1160, 240, "Panel in VibeCheck", "Shown in its result page\nScore now vs with swaps\nEach swap with Delta-E\nContrast after swaps\nBar chart",
              fill=(254, 243, 199), outline=(217, 119, 6))
 
 
@@ -381,511 +382,708 @@ for ln in collected.splitlines():
 n_cases = len(re.findall(r"^tests[\\/]", collected, flags=re.M))
 
 
+# Real runs against the partner's VibeCheck, read from the plugin's own run log (if present).
+real_runs = []
+_log_db = ROOT / "crossdev" / "palette_fixer" / "data" / "fixer_log.db"
+if _log_db.exists():
+    import sqlite3
+    _seen = set()
+    with sqlite3.connect(_log_db) as _c:
+        for _at, _check, _payload in _c.execute(
+                # From 26 Nov 2026: VibeCheck with real CLIP. Earlier runs were its fake-CLIP test mode.
+                "SELECT at, check_id, payload FROM runs WHERE status = 'ok' AND at >= '2026-11-26' ORDER BY id DESC"):
+            _p = json.loads(_payload)
+            _ev = _p.get("event") or {}
+            if not str(_ev.get("api_base", "")).endswith(":8030") or not _p.get("rescore"):
+                continue
+            _key = (_ev["team"]["name"], tuple(s["from"] for s in _p["fix"]["swaps"]))
+            if _key in _seen:
+                continue
+            _seen.add(_key)
+            real_runs.append({"at": _at, "check": _check, "team": _ev["team"]["name"], "p": _p})
+            if len(real_runs) >= 4:
+                break
+    real_runs.reverse()
+
+
 # ============================================================ TITLE & COVER PAGE
 P("PaletteAI", TITLE)
-P("Perceptually Uniform, Accessible Color Extraction & Adaptive Preference Learning", SUBTITLE)
+P("Colour palettes from images, with accessibility checks and a library that learns what you like", SUBTITLE)
 story.append(Spacer(1, 8))
-P("CS698B Final Course Project Report &nbsp;|&nbsp; Department of Computer Science &amp; Engineering &nbsp;|&nbsp; IIT Kanpur",
+P("CS698B Final Project Report &nbsp;|&nbsp; IIT Kanpur &nbsp;|&nbsp; November 2026",
   ParagraphStyle("c", parent=BODY, alignment=TA_CENTER, fontName="Helvetica-Bold", textColor=TEXT_MUTED))
 story.append(Spacer(1, 12))
 
 table([
-    ["Project Role", "Project Name", "Repository / Package", "Key Technologies"],
-    ["Self-Dev System", "PaletteAI", "paletteai (FastAPI + Vanilla SPA)", "NumPy, CIELAB, K-Means++, Silhouette, WCAG 2.1, Machado CVD, SQLite"],
-    ["Cross-Dev System", "Palette Fixer & Re-Scorer", "crossdev/palette_fixer", "CIEDE2000 (Sharma 2005), VibeCheck Hook, Contrast Invariants, SQLite"],
-], [0.18, 0.22, 0.25, 0.35])
+    ["Part", "Project", "Code", "Main tools"],
+    ["Self-dev", "PaletteAI", "paletteai/ (FastAPI + plain HTML/CSS/JS)", "NumPy, CIELAB, K-Means, silhouette score, WCAG 2.1, SQLite"],
+    ["Cross-dev", "Palette Fixer & Re-Scorer, a plugin for VibeCheck", "crossdev/palette_fixer/", "CIEDE2000, VibeCheck's plugin webhook and API, SQLite"],
+], [0.12, 0.30, 0.28, 0.30])
 
 story.append(Spacer(1, 6))
-h2("Project Team: FORSAKEN")
+h2("Team LARPERS")
 table([
-    ["#", "Student Name", "Roll Number", "Institutional Email", "Primary Contributions"],
-    ["1", "Jagrab Jyoti Deuri", "265017", "jagrabjd26@iitk.ac.in", "System Architecture, CIELAB Engine, Full-Stack Integration, Git/CI"],
-    ["2", "Neilan Ghosh", "265023", "neilang26@iitk.ac.in", "Adaptive Preference Ranking, Kernel Regression, Mathematical Modeling"],
-    ["3", "Kamlesh Malviya", "265019", "kamleshm26@iitk.ac.in", "K-Means++ & Silhouette Optimization, Heuristic Fallback Engine"],
-    ["4", "Tarun Kumar", "265030", "tarunkumar26@iitk.ac.in", "ETL Pipeline, Pillow Sanitization, EXIF Normalization, Deduplication"],
-    ["5", "Sagnik Saha", "265026", "sagniks26@iitk.ac.in", "Cross-Dev Plugin (Palette Fixer), CIEDE2000 Implementation, Test Suite"],
-], [0.05, 0.24, 0.12, 0.27, 0.32])
+    ["#", "Name", "Roll No.", "Email", "Main work (details in Section 1)"],
+    ["1", "Jagrab Jyoti Deuri", "265017", "jagrabjd26@iitk.ac.in", "K-Means clustering with silhouette selection; colour science module"],
+    ["2", "Neilan Ghosh", "265023", "neilang26@iitk.ac.in", "Preference ranking model; cross-dev colour fixing engine (CIEDE2000)"],
+    ["3", "Kamlesh Malviya", "265019", "kamleshm26@iitk.ac.in", "Interface styling, sample images, demo guide, report assembly"],
+    ["4", "Tarun Kumar", "265030", "tarunkumar26@iitk.ac.in", "REST API and plugin system; connecting the plugin to VibeCheck"],
+    ["5", "Sagnik Saha", "265026", "sagniks26@iitk.ac.in", "ETL pipeline and SQLite storage; core unit tests"],
+], [0.04, 0.19, 0.10, 0.25, 0.42])
 
-h2("Cross-Development Partner Information")
+h2("Cross-dev partner")
 table([
-    ["Host Application", "Host Team Name", "Host Team Members", "Integration Surface"],
-    ["VibeCheck (Poster Checker)", "rm -rf sleep", "Pranil, Niteesh, Sreejit, Neel, Ekansh", "check.completed Hook, Result Slot Panel, /teams/{id}/palette, /score"],
-], [0.24, 0.18, 0.28, 0.30])
+    ["Base project", "Team", "Members", "What we used"],
+    ["VibeCheck (checks whether a poster plan fits a design team's style)", "rm -rf sleep",
+     "Pranil (265025), Niteesh (265024), Sreejit (265028), Neel (265022), Ekansh (265013)",
+     "check.completed webhook, result-slot Panel, GET /teams/{id}/style-profile, POST /teams/{id}/checks, POST /plugins"],
+], [0.28, 0.12, 0.30, 0.30])
 
 story.append(Spacer(1, 6))
-callout("Executive Project Abstract",
-        "PaletteAI is a locally deployable, privacy-preserving web platform and developer toolkit designed to extract, audit, "
-        "personalize, and organize digital color palettes from raster images. Engineered to solve the chronic non-uniformity "
-        "of RGB color quantization and the widespread neglect of visual accessibility, PaletteAI executes Lloyd's K-Means clustering "
-        "in the perceptually uniform CIELAB space with automated silhouette validation, empirical fallback heuristics, and post-clustering "
-        "centroid merging. Accessibility is strictly verified via a full N x N WCAG 2.1 contrast matrix and Machado et al. (2009) "
-        "dichromatic vision simulations (protanopia, deuteranopia, tritanopia). Palettes are personalized via a dual-centroid "
-        "Gaussian kernel preference learning engine that dynamically adapts feature weights based on user feedback. In Part B, "
-        "Team FORSAKEN delivers 'Palette Fixer & Re-Scorer', an autonomous cross-development plugin for team 'rm -rf sleep' (VibeCheck) "
-        "that detects off-brand poster colors using CIEDE2000 metrics and suggests brand-compliant replacements without degrading "
-        "typographic contrast. All empirical benchmarks and test statistics in this report were verified live at build time.",
+callout("Summary",
+        "PaletteAI takes an image and gives back its main colours, how much of the image each one covers, whether they are "
+        "readable as text on each other (WCAG contrast), and how they look to people with the three common kinds of colour "
+        "blindness. It also suggests colour harmonies. Users can save palettes and like or dislike them, and the library is "
+        "then re-ordered by a small model that learns from those likes. Everything runs locally on a laptop with no internet. "
+        "For the cross-dev part we built Palette Fixer & Re-Scorer for team rm -rf sleep's VibeCheck: when VibeCheck says a "
+        "plan is off-brand, the plugin suggests up to three colour swaps towards the team's own colours, checks that text "
+        "stays readable, and asks VibeCheck to score the recoloured version. Numbers in Part C were produced by running the "
+        "code while this PDF was built.",
         kind="info")
 
 story.append(PageBreak())
 
+# ============================================================ 1. WHO DID WHAT
+h1("1. Who Did What")
+P("We split the work by component so that each person owned a part of the code from start to end, and then everyone "
+  "tested the whole thing together before the demo. The table lists what each of us built and the files that came "
+  "out of it. Reviewing each other's code and fixing bugs found during testing was shared by everyone.")
+table([
+    ["Member", "What they did", "Main files"],
+    ["Kamlesh Malviya",
+     "Styled the web interface (layout, tabs, light/dark theme switch, loader, sample grid) and checked that the colours "
+     "used in the UI itself pass contrast. Put together the sample image set, including finding the three IIT Kanpur photos "
+     "on Wikimedia Commons and adding their credits. Wrote the demo guide and assembled this report.",
+     "paletteai/static/*.css, index.html, samples.py, docs/DEMO.md, scripts/build_report.py"],
+    ["Neilan Ghosh",
+     "Designed and built the preference ranking model: the eight palette features, the kernel score, the weights that "
+     "adapt to what a user likes, and the plain-English reasons shown next to each ranked palette. For the cross-dev plugin, "
+     "wrote the colour fixing engine: CIEDE2000 (checked against the published test pairs), off-brand detection, the swap "
+     "budget, the rule that a swap may not make text unreadable, and the recolouring of images used for re-scoring.",
+     "paletteai/ranking.py, crossdev/palette_fixer/fixer.py"],
+    ["Jagrab Jyoti Deuri",
+     "Built the clustering engine: K-Means with k-means++ seeding in CIELAB, choosing the number of colours by silhouette "
+     "score, the fallback when the score cannot decide, and merging near-identical colours. Wrote the colour science module: "
+     "sRGB to CIELAB, WCAG contrast, the colour-blindness simulation matrices and the harmony rules.",
+     "paletteai/clustering.py, paletteai/color.py"],
+    ["Sagnik Saha",
+     "Built the ETL pipeline: upload checks (size, type, broken files, decompression bombs), EXIF rotation, transparency "
+     "handling, pixel sampling, the content hash that skips repeat work, and the SQLite schema. Wrote most of the core unit tests.",
+     "paletteai/etl.py, service.py, db.py, tests/test_core.py"],
+    ["Tarun Kumar",
+     "Built the REST API and its typed request/response models, the error format, and the plugin system (in-process plugins, "
+     "webhook plugins, panel blocks, timeouts), with the example plugins and plugin docs. For the cross-dev part, wrote the "
+     "code that talks to VibeCheck (reading its event, fetching the team palette, submitting re-score checks, building its "
+     "Panel), registered the plugin, and tested it against VibeCheck. Wrote the API and plugin tests.",
+     "paletteai/api.py, schemas.py, plugins.py, main.py, crossdev/palette_fixer/client.py, app.py, tests/test_api.py, tests/test_palette_fixer.py"],
+], [0.16, 0.56, 0.28])
+
 # ============================================================ PART A: SELF-DEV PROJECT
+story.append(Spacer(1, 8))
 h1("Part A: Self-Dev Project (PaletteAI)")
 
-# ------------------------------------------------------------ 1. Overview & System Design
-h1("1. Overview & System Design")
-P("Color is the foundational pillar of visual communication, user experience, and brand recognition. However, traditional color "
-  "extraction tools suffer from severe scientific and practical deficiencies: they compute distances in device-dependent, non-uniform "
-  "RGB spaces, guess the number of colors k through arbitrary rules of thumb, ignore visual accessibility compliance, and fail to adapt "
-  "to subjective user aesthetics. <b>PaletteAI</b> was conceived and implemented to rectify these systemic flaws through rigorous "
-  "color science, unsupervised machine learning, and inclusive design principles.")
+h1("2. What PaletteAI Is and Why We Built It")
+P("Many palette tools have three problems. They measure colour distance in RGB, where equal "
+  "numeric steps do not look equal to the eye, so the palettes come out muddy. They make you pick the number of colours "
+  "yourself. And they say nothing about whether the colours can actually be used together, for example as text on a "
+  "background, or how they look to someone who is colour blind (about 8% of men and 0.5% of women have some form of it).")
+P("PaletteAI tries to fix those three things and nothing more. It works in CIELAB, a colour space built so that distances "
+  "roughly match what people see. It picks the number of colours itself and tells you why. It checks every pair of colours "
+  "against the WCAG contrast rules and shows the palette under protanopia, deuteranopia and tritanopia. On top of that, the "
+  "library learns from likes and dislikes and puts the palettes you are likely to want first. We kept to the scope in our "
+  "proposal: the app recommends and explains; it does not edit images.")
 
+h2("2.1 The five components at a glance")
 table([
-    ["Component Pillar", "Core Responsibilities", "Underlying Implementation"],
-    ["ETL (Data Pipeline)", "Validates uploads against size and decompression bomb limits; normalises EXIF orientation; extracts first animation frame; discards transparent alpha borders; deterministically samples up to 5,000 pixels; transforms sRGB to CIELAB (D65); manages SQLite transaction storage; provides idempotent SHA-256 caching.", "paletteai/etl.py, db.py, service.py"],
-    ["AIML (Adaptive Engine)", "Executes vectorised K-Means++ clustering in CIELAB; evaluates k = 3-8 using silhouette score; triggers automated fallback to k = 5 when silhouette is inconclusive; merges near-duplicate centroids (Delta-E < 5.0); extracts 8-D palette feature vectors; trains dual-centroid Gaussian kernel preference model with adaptive feature weighting.", "paletteai/clustering.py, ranking.py"],
-    ["VIZ (Accessible UI)", "Renders coverage-weighted swatches with contrast-adaptive labels and plain-language color names; renders data-table-backed silhouette and composition charts; evaluates N x N WCAG 2.1 contrast matrix; simulates Protanopia, Deuteranopia, and Tritanopia in linear RGB; generates geometric harmonies.", "paletteai/static/, color.py"],
-    ["APP (Web Application)", "Serves single-page application using FastAPI and Uvicorn; requires zero client-side frameworks and zero build steps; operates 100% offline; provides multi-profile library isolation without authentication friction; ships 12 sample images (9 drawn in code, 3 IIT Kanpur photos from Wikimedia Commons).", "paletteai/main.py, run.py, samples.py"],
-    ["DEV (Developer API)", "Publishes comprehensive OpenAPI 3.1 specification; enforces typed Pydantic models; provides dual plugin system (in-process Python modules and out-of-process HTTP webhooks) using safe JSON block schemas that guarantee total immunity against XSS.", "paletteai/api.py, plugins.py, schemas.py"],
-], [0.18, 0.54, 0.28])
+    ["Component", "What it does in PaletteAI", "Where"],
+    ["ETL", "Accepts an upload, checks it (size, type, broken or fully transparent files), fixes rotation, drops transparent "
+            "pixels, samples up to 5,000 pixels, converts them to CIELAB and stores the image, palette, contrast results and "
+            "feedback in SQLite. A SHA-256 hash of the file means the same image is never processed twice.",
+     "etl.py, service.py, db.py"],
+    ["AIML", "K-Means in CIELAB for the dominant colours, with the number of colours (3 to 8) chosen by silhouette score and a "
+             "fallback to 5 when the score is inconclusive. A preference model ranks saved palettes from each user's likes and dislikes.",
+     "clustering.py, ranking.py"],
+    ["VIZ", "Swatches labelled with HEX, a plain colour name and coverage; WCAG pass/fail written in words; colour-blindness "
+            "previews of the image and palette; harmony suggestions; charts for composition, silhouette scores and ranking, "
+            "each backed by a real data table.",
+     "static/, color.py"],
+    ["APP", "A local web app: FastAPI backend, plain HTML/CSS/JS frontend (no build step), SQLite. Runs with one command and "
+            "needs no internet. Ships with 12 sample images so the demo always works.",
+     "main.py, run.py, samples.py"],
+    ["DEV", "A documented REST API (OpenAPI at /docs and /openapi.json) covering every feature of the UI, and a plugin system "
+            "so other teams can add routes and result panels without changing our code.",
+     "api.py, schemas.py, plugins.py"],
+], [0.10, 0.62, 0.28])
 
-story.append(Spacer(1, 4))
-h2("System Architecture Topology")
-P("The system is architected as an asynchronous single-process web application backed by a relational SQLite store. The browser "
-  "communicates strictly via documented REST endpoints, ensuring that any capability accessible to the user interface is equally "
-  "available to headless agents and external systems.")
+h2("2.2 How the pieces fit together")
+P("The browser only ever talks to the REST API, the same API another team would use. That was a deliberate choice: "
+  "if something works in the UI, it works for a script or a plugin too.")
 story.append(generate_diagram(arch_diagram_draw, width=1200, height=400, target_width_ratio=1.0))
 story.append(Spacer(1, 6))
 
-# ------------------------------------------------------------ 2. Why It Was Made
-h1("2. Why It Was Made: Scientific Motivation & Problem Analysis")
-h2("2.1 Human Color Perception Physiology & The Non-Uniformity of RGB")
-P("Human color perception is initiated by retinal photoreceptors: rods (responsible for monochromatic scotopic vision) and three "
-  "types of cones (photopic vision) designated as Long (L, peak ~560 nm), Medium (M, peak ~530 nm), and Short (S, peak ~420 nm). "
-  "Neural pathways recode these cone excitations into opponent channels: achromatic luminance (Black-White), red-green opposition, "
-  "and blue-yellow opposition. Crucially, human sensitivity is highly non-linear: our visual cortex distinguishes tiny differences "
-  "in green and yellow wavelengths far more acutely than equal differences in blue wavelengths (MacAdam ellipses).")
-P("Standard RGB color spaces treat red, green, and blue as orthogonal Cartesian axes. Calculating Euclidean distances in RGB: "
-  "<i>d(c<sub>1</sub>, c<sub>2</sub>) = &radic;((R<sub>1</sub>-R<sub>2</sub>)<sup>2</sup> + (G<sub>1</sub>-G<sub>2</sub>)<sup>2</sup> + (B<sub>1</sub>-B<sub>2</sub>)<sup>2</sup>)</i> "
-  "is fundamentally flawed. Two colors separated by an RGB Euclidean distance of 30 might appear visually identical if they differ "
-  "primarily in dark blue, whereas the same numerical distance in bright green produces a jarring perceptual shift. Performing "
-  "unsupervised clustering in RGB inevitably results in muddy, shifted, or perceptually unrepresentative color centroids.")
+# ------------------------------------------------------------ 3. Colour maths
+h1("3. The Colour Maths We Used")
+P("All of this is written directly in NumPy in color.py; we did not use a computer vision library. The formulas are the "
+  "standard ones, and we list them here because the rest of the report depends on them.")
 
-h2("2.2 The Accessibility Crisis & The WCAG 2.1 Mandate")
-P("Visual impairment and color vision deficiency (CVD) represent an acute accessibility barrier. Congenital CVD affects approximately "
-  "8% of biological males and 0.5% of biological females worldwide:")
+h2("3.1 sRGB to CIELAB (D65 white point)")
 bullets([
-    "<b>Protanopia:</b> Absence of functional L-cones; severe insensitivity to red light, causing reds to appear dark and confusing red with green.",
-    "<b>Deuteranopia:</b> Absence of functional M-cones; insensitivity to green light, causing red-green discrimination failure.",
-    "<b>Tritanopia:</b> Absence of functional S-cones; insensitivity to short-wavelength blue light, confusing blue with green and yellow with violet.",
-])
-P("The Web Content Accessibility Guidelines (WCAG 2.1) require strict minimum luminance contrast ratios to ensure legibility: "
-  "<b>4.5:1</b> for standard text (Level AA), <b>3.0:1</b> for large text (18pt or 14pt bold) and graphical UI components, and <b>7.0:1</b> "
-  "for high-contrast compliance (Level AAA). Contemporary digital extraction tools rarely test extracted palettes for accessibility, "
-  "leading designers to unwittingly adopt combinations that are unreadable to millions of users.")
-
-h2("2.3 The Algorithmic Dilemma of Unsupervised Palette Extraction")
-P("Unsupervised extraction faces two major algorithmic hurdles: (1) determining the optimal number of clusters k without human intervention, "
-  "and (2) preventing algorithm degradation on edge cases (e.g., uniform noise, monochromatic gradients, or images with transparent borders). "
-  "Standard heuristics like the 'Elbow Method' require subjective curve inflection analysis, which is impossible to automate reliably. "
-  "While Silhouette Analysis provides an objective measurement of cluster cohesion and separation, it is computationally expensive "
-  "and vulnerable to noise. PaletteAI was built with a complete algorithmic pipeline that couples silhouette analysis with deterministic "
-  "subsampling, empirical fallback guards, and post-clustering perceptual merges.")
-
-h2("2.4 Personal Taste & Subjective Palette Adaptation")
-P("Aesthetic taste is intrinsically subjective. A designer curating corporate fintech branding favors muted, high-contrast, cool "
-  "palettes, whereas a children's book illustrator prefers vivid, warm, pastel compositions. Static extraction engines treat every "
-  "user identically. Conversely, deep neural network recommenders require massive training sets, GPU servers, and telemetry that "
-  "compromise user privacy. PaletteAI resolves this by implementing a lightweight, on-device Gaussian kernel preference learning "
-  "algorithm that adapts to user likes and dislikes in real time.")
-
-story.append(PageBreak())
-
-# ------------------------------------------------------------ 3. Mathematical Foundations
-h1("3. Mathematical Foundations of Colorimetry & Distance Metrics")
-P("Every color calculation in PaletteAI is implemented from first principles in NumPy without relying on external computer vision "
-  "frameworks. The mathematical pipeline adheres strictly to CIE (Commission Internationale de l'Éclairage) specifications.")
-
-h2("3.1 Color Space Transformations (sRGB to CIELAB D65)")
-P("Standard digital images are encoded in gamma-compressed sRGB. Before colorimetric manipulation, sRGB values must be converted to "
-  "linear optical intensity, projected onto the CIE 1931 XYZ reference space, and transformed into the non-linear CIELAB space:")
-bullets([
-    "<b>1. sRGB Gamma Expansion:</b> Linear intensity <i>C<sub>lin</sub></i> is derived from normalized sRGB <i>C<sub>srgb</sub> &isin; [0, 1]</i>:<br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>C<sub>lin</sub> = C<sub>srgb</sub> / 12.92</i> &nbsp;&nbsp;&nbsp;&nbsp; if <i>C<sub>srgb</sub> &le; 0.04045</i><br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>C<sub>lin</sub> = ((C<sub>srgb</sub> + 0.055) / 1.055)<sup>2.4</sup></i> &nbsp;&nbsp;&nbsp;&nbsp; if <i>C<sub>srgb</sub> > 0.04045</i>",
-
-    "<b>2. Linear RGB to CIE 1931 XYZ:</b> Projected via the standard sRGB D65 transformation matrix:<br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>[X, Y, Z]<sup>T</sup> = M<sub>sRGB</sub> &times; [R<sub>lin</sub>, G<sub>lin</sub>, B<sub>lin</sub>]<sup>T</sup></i>, where "
-    "<i>M<sub>sRGB</sub></i> has rows [0.4124564, 0.3575761, 0.1804375], [0.2126729, 0.7151522, 0.0721750], and [0.0193339, 0.1191920, 0.9503041].",
-
-    "<b>3. CIE 1931 XYZ to CIELAB (D65):</b> Normalized by white point <i>[X<sub>n</sub>, Y<sub>n</sub>, Z<sub>n</sub>] = [0.95047, 1.00000, 1.08883]</i>:<br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>L<sup>*</sup> = 116 f(Y / Y<sub>n</sub>) - 16</i><br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>a<sup>*</sup> = 500 [f(X / X<sub>n</sub>) - f(Y / Y<sub>n</sub>)]</i><br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;<i>b<sup>*</sup> = 200 [f(Y / Y<sub>n</sub>) - f(Z / Z<sub>n</sub>)]</i><br/>"
-    "&nbsp;&nbsp;&nbsp;&nbsp;where <i>f(t) = t<sup>1/3</sup></i> if <i>t > &epsilon; = (216/24389)</i>, otherwise <i>f(t) = (&kappa;t + 16) / 116</i> with <i>&kappa; = 24389/27</i>.",
+    "<b>Undo the gamma:</b> each channel c in [0, 1] becomes c / 12.92 if c &le; 0.04045, otherwise ((c + 0.055) / 1.055)<sup>2.4</sup>.",
+    "<b>Linear RGB to XYZ:</b> multiply by the standard sRGB matrix, rows [0.4124564, 0.3575761, 0.1804375], "
+    "[0.2126729, 0.7151522, 0.0721750], [0.0193339, 0.1191920, 0.9503041].",
+    "<b>XYZ to Lab:</b> divide by the white point (0.95047, 1.0, 1.08883), apply f(t) = t<sup>1/3</sup> (or a linear piece for "
+    "very small t), then L* = 116 f(Y) - 16, a* = 500 (f(X) - f(Y)), b* = 200 (f(Y) - f(Z)).",
 ])
 
-h2("3.2 Color Difference Metrics: Delta-E 76 vs. CIEDE2000")
-P("In the 1976 CIELAB definition, color difference is calculated as simple Euclidean distance: "
-  "<i>&Delta;E<sup>*</sup><sub>76</sub> = &radic;((&Delta;L<sup>*</sup>)<sup>2</sup> + (&Delta;a<sup>*</sup>)<sup>2</sup> + (&Delta;b<sup>*</sup>)<sup>2</sup>)</i>. "
-  "While vastly superior to RGB distance, CIELAB is still imperfectly uniform, particularly for high-chroma colors and in the blue region. "
-  "In 2001, the CIE standardized <b>CIEDE2000</b> (implemented in our cross-dev engine from Sharma, Wu & Dalal, 2005):")
-P("<i>&Delta;E<sub>00</sub> = &radic;( (&Delta;L' / k<sub>L</sub>S<sub>L</sub>)<sup>2</sup> + (&Delta;C' / k<sub>C</sub>S<sub>C</sub>)<sup>2</sup> + (&Delta;H' / k<sub>H</sub>S<sub>H</sub>)<sup>2</sup> + R<sub>T</sub> (&Delta;C' / k<sub>C</sub>S<sub>C</sub>)(&Delta;H' / k<sub>H</sub>S<sub>H</sub>) )</i>")
-P("Where <i>S<sub>L</sub>, S<sub>C</sub>, S<sub>H</sub></i> are positional weighting functions adjusting for lightness, chroma, and hue, and "
-  "<i>R<sub>T</sub></i> is a rotation term resolving the non-linear interaction in the blue region (around hue angle 275&deg;).")
+h2("3.2 Colour difference")
+P("Inside PaletteAI we use plain Euclidean distance in Lab (Delta-E 76), which is good enough for clustering and for "
+  "deciding when two clusters are the same colour. For the cross-dev plugin we needed something more careful, because "
+  "the plugin tells a designer \"this colour is off-brand\", so it uses <b>CIEDE2000</b> (Sharma, Wu and Dalal, 2005). "
+  "CIEDE2000 adds weights for lightness, chroma and hue and a correction term for blues, where Lab is least uniform.")
 
-h2("3.3 WCAG 2.1 Luminance & Contrast Formulation")
-P("The relative luminance <i>Y</i> of any sRGB color is computed from its linear RGB coefficients:<br/>"
-  "&nbsp;&nbsp;&nbsp;&nbsp;<i>Y = 0.2126 R<sub>lin</sub> + 0.7152 G<sub>lin</sub> + 0.0722 B<sub>lin</sub></i><br/>"
-  "For any color pair with relative luminances <i>L<sub>1</sub></i> (lighter) and <i>L<sub>2</sub></i> (darker), the WCAG contrast ratio is:<br/>"
-  "&nbsp;&nbsp;&nbsp;&nbsp;<i>CR = (L<sub>1</sub> + 0.05) / (L<sub>2</sub> + 0.05)</i><br/>"
-  "The 0.05 constant prevents division by zero and models ambient flare on physical displays. Contrast ratios range from <b>1.0:1</b> (identical colors) to <b>21.0:1</b> (pure black on pure white).")
+h2("3.3 WCAG contrast")
+P("Relative luminance is Y = 0.2126 R + 0.7152 G + 0.0722 B on linear RGB. For a lighter colour L1 and darker L2 the "
+  "contrast ratio is (L1 + 0.05) / (L2 + 0.05), from 1:1 (same colour) to 21:1 (black on white). We report AA (4.5:1 "
+  "normal text, 3:1 large text) and AAA (7:1).")
 
-h2("3.4 CVD Simulation via Machado, Oliveira & Fernandes (2009)")
-P("To simulate dichromatic perception accurately without costly spectral rendering, PaletteAI applies the pre-computed linear RGB "
-  "transformation matrices developed by Machado et al. (2009) at severity 1.0:")
+h2("3.4 Colour-blindness simulation")
+P("We use the matrices from Machado, Oliveira and Fernandes (2009) at full severity, applied in linear RGB:")
 table([
-    ["Deficiency", "Mechanism", "Linear RGB Transformation Matrix Row 1, Row 2, Row 3"],
-    ["Protanopia", "L-cone absence (Red-blind)", "[0.152286, 1.052583, -0.204868]<br/>[0.114503, 0.786281, 0.099216]<br/>[-0.003882, -0.048116, 1.051998]"],
-    ["Deuteranopia", "M-cone absence (Green-blind)", "[0.367322, 0.860646, -0.227968]<br/>[0.280085, 0.672501, 0.047413]<br/>[-0.011820, 0.042940, 0.968881]"],
-    ["Tritanopia", "S-cone absence (Blue-blind)", "[1.255528, -0.076749, -0.178779]<br/>[-0.078411, 0.930809, 0.147602]<br/>[0.004733, 0.691367, 0.303900]"],
-], [0.15, 0.25, 0.60])
+    ["Type", "What is missing", "Matrix rows"],
+    ["Protanopia", "Red (L) cones", "[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]"],
+    ["Deuteranopia", "Green (M) cones", "[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]"],
+    ["Tritanopia", "Blue (S) cones", "[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]"],
+], [0.15, 0.17, 0.68])
 
-# ------------------------------------------------------------ 4. ETL Pipeline
-h1("4. How It Was Made: Data Pipeline & Persistence (ETL)")
-P("The ETL pipeline (paletteai/etl.py) processes untrusted binary image uploads into clean, colorimetrically calibrated data "
-  "points. The entire ingestion pipeline is designed with defensive programming to ensure that invalid or malicious payloads "
-  "never compromise system stability or pollute the database.")
+# ------------------------------------------------------------ 4. ETL
+h1("4. ETL: Getting Images In and Storing the Results")
+P("Data comes from users: images they upload, plus the 12 built-in samples. Every upload is treated as untrusted. "
+  "The pipeline either produces a clean set of Lab pixels or rejects the file with a clear error, and nothing is "
+  "written to the database unless the whole extraction succeeds.")
 story.append(generate_diagram(etl_diagram_draw, width=1200, height=260, target_width_ratio=1.0))
 
-h2("4.1 Ingestion, Validation & Security Boundaries")
-P("Every upload is subjected to strict gatekeeping checks: (1) rejection of zero-byte files (HTTP 400), (2) byte limit of 10 MB "
-  "(HTTP 413), (3) pixel limit of 40 megapixels to block decompression bomb exploits, and (4) structural verification using "
-  "Pillow's <code>im.verify()</code>. Supported formats are explicitly restricted to PNG, JPEG, WebP, GIF, and BMP. For multi-frame "
-  "formats (such as animated GIFs), the pipeline isolates frame 0, while EXIF metadata is parsed to apply automated transposition "
-  "(<code>ImageOps.exif_transpose</code>) so rotated camera images are correctly aligned.")
+h2("4.1 Checks on the way in")
+bullets([
+    "Empty files are rejected (400). Files over 10 MB are rejected (413). Images over 40 megapixels are rejected before "
+    "decoding, which stops decompression bombs.",
+    "Only PNG, JPEG, WebP, GIF and BMP are accepted (415 otherwise), and Pillow has to be able to verify the file (422 if not).",
+    "For animated GIFs we use the first frame. Phone photos are rotated using their EXIF orientation so the preview is the right way up.",
+    "Pixels with alpha below 128 are ignored, so a logo on a transparent background does not get a fake white or black colour. "
+    "A completely transparent image is rejected with the code <code>fully_transparent</code>.",
+])
+P(f"During the build of this report, an empty upload came back with HTTP {bad_empty.status_code} and a text file renamed "
+  f"to .png came back with HTTP {bad_text.status_code}; neither created any rows.")
 
-h2("4.2 Alpha Channel Normalisation & Deterministic Subsampling")
-P("Transparent images (e.g. logos and UI icons) frequently introduce false black or white borders if transparency is ignored. "
-  "PaletteAI inspects alpha channels and discards any pixel whose alpha value is below 128 (<code>ALPHA_THRESHOLD</code>). "
-  "If an upload is completely transparent, it is cleanly rejected with HTTP 422 (<code>fully_transparent</code>).")
-P("To maintain strict <i>O(1)</i> latency independent of upload resolution, the image is scaled to a bounding box of 200x200 pixels "
-  "using <b>Nearest-Neighbour interpolation</b>. Nearest-neighbour is mathematically critical: bilinear or bicubic filtering would "
-  "synthesize blended, artificial color values along high-contrast boundaries that never existed in the original artwork. From the "
-  "remaining opaque pixels, up to 5,000 pixels are sampled. The pseudo-random number generator is seeded deterministically using the "
-  "first 8 hexadecimal characters of the image's SHA-256 hash, ensuring that identical images always produce identical samples.")
+h2("4.2 Sampling")
+P("The image is shrunk to fit in 200 x 200 using nearest-neighbour resizing. We picked nearest-neighbour on purpose: "
+  "smoother filters blend pixels at sharp edges and invent colours that were never in the image. Up to 5,000 opaque "
+  "pixels are then sampled. The random generator is seeded from the file's SHA-256 hash, so the same image always gives "
+  "the same palette, which made testing much easier.")
 
-h2("4.3 Relational SQLite Schema & Transaction Atomicity")
-P("State is persisted in an embedded SQLite database (data/paletteai.db). Metadata and extracted palettes are committed in a "
-  "single atomic transaction: if extraction fails, no orphan rows are created. A content hash index provides instant deduplication: "
-  "submitting an identical file and k parameter skips the entire clustering pipeline and returns the cached record in under 2 ms.")
+h2("4.3 Storage")
+P("Everything is kept in one SQLite file (data/paletteai.db): images (hash, name, size, transparency), palettes (colours "
+  "with HEX, Lab and coverage, the k used, the silhouette scores and whether the fallback was used), the contrast and "
+  "colour-blindness results, each user's saved palettes and their likes and dislikes. The image and its palette are "
+  "written in one transaction. Uploading the same file with the same k again returns the stored palette instead of "
+  f"re-clustering (in this build, re-submitting the sunset sample returned cached = {str(recached).lower()}).")
 
 story.append(PageBreak())
 
-# ------------------------------------------------------------ 5. AIML Engine
-h1("5. How It Was Made: Machine Learning & Adaptive Engine (AIML)")
-P("The adaptive core of PaletteAI comprises two specialized machine learning systems: (1) an unsupervised dominant-color "
-  "clustering engine with dynamic cluster-count selection, and (2) a dual-centroid Gaussian kernel preference regression model.")
+# ------------------------------------------------------------ 5. AIML
+h1("5. AIML: Finding the Colours and Learning Preferences")
+P("There are two adaptive parts. The clustering decides how many colours an image really has, and the ranking model "
+  "changes its ordering as a user likes and dislikes palettes.")
 story.append(generate_diagram(aiml_diagram_draw, width=1200, height=240, target_width_ratio=1.0))
 
-h2("5.1 Vectorized K-Means++ in CIELAB")
-P("Rather than importing bulky general-purpose machine learning libraries, Lloyd's algorithm is implemented directly on NumPy array "
-  "operations. Centers are initialized using <b>K-Means++ seeding</b>: the first centroid is chosen uniformly at random, and subsequent "
-  "centroids are sampled with probability proportional to their squared Euclidean distance <i>D(x)<sup>2</sup></i> to the nearest existing "
-  "center. The clustering executes 3 restarts with up to 40 iterations. If any cluster becomes empty during an iteration, it is "
-  "dynamically re-seeded at the data point with the highest residual error, guaranteeing exactly k centroids.")
+h2("5.1 K-Means in CIELAB")
+P("We wrote K-Means ourselves in NumPy instead of pulling in scikit-learn. Starting points are chosen with k-means++ "
+  "(each new centre is picked with probability proportional to its squared distance from the nearest existing centre). "
+  "We run 3 restarts of up to 40 iterations and keep the best. If a cluster ends up empty, it is restarted at the point "
+  "that is currently worst served, so we always get exactly k colours.")
 
-h2("5.2 Silhouette Score Optimization & Empirical Fallback")
-P("In automatic mode, PaletteAI evaluates candidate color counts from <i>k = 3</i> to <i>k = 8</i>. For each k, the mean silhouette "
-  "coefficient <i>s</i> is calculated over a deterministic subsample of 1,000 pixels:")
-P("<i>s(i) = (b(i) - a(i)) / max(a(i), b(i))</i>")
-P("Where <i>a(i)</i> is the mean intra-cluster distance from pixel <i>i</i> to all other points in its own cluster, and <i>b(i)</i> is the "
-  "mean distance to points in the nearest neighboring cluster. The mean silhouette coefficient measures cluster separation in [-1, 1].")
-callout("Adaptive Fallback Guard",
-        f"If the maximum silhouette score is below {clustering.MIN_CONFIDENT_SILHOUETTE} (indicating that data lacks well-defined clusters, "
-        f"as in uniform noise), or if the spread between the best and worst score is below {clustering.MIN_SILHOUETTE_SPREAD} "
-        f"(indicating that all k values are equally ambiguous), the system declares the silhouette inconclusive and falls back "
-        f"safely to k = {clustering.FALLBACK_K}. The user interface displays a clear, natural-language explanation of this decision.",
+h2("5.2 Choosing the number of colours")
+P(f"In automatic mode we try k = {min(clustering.AUTO_K_RANGE)} to {max(clustering.AUTO_K_RANGE)} and compute the mean "
+  "silhouette score for each on a fixed subsample of 1,000 pixels. For a pixel i, s(i) = (b(i) - a(i)) / max(a(i), b(i)), "
+  "where a(i) is its mean distance to its own cluster and b(i) its mean distance to the nearest other cluster. Higher is "
+  "better. The k with the best mean score wins.")
+callout("When the silhouette score can't decide",
+        f"If the best score is below {clustering.MIN_CONFIDENT_SILHOUETTE}, or all the scores are within "
+        f"{clustering.MIN_SILHOUETTE_SPREAD} of each other, no k is clearly better. Pure noise is the typical case (it scores "
+        f"around 0.3 for every k). We then use k = {clustering.FALLBACK_K} and the result page says, in words, that the "
+        "fallback was used and why.",
         kind="note")
 
-h2("5.3 Perceptual Cluster Merging")
-P("Natural images often feature gradients that produce multiple distinct centroids of nearly identical hue. In automatic mode, "
-  f"PaletteAI executes a greedy post-clustering merge: any centroid pair separated by less than {clustering.MERGE_DELTA_E} Delta-E "
-  "is iteratively combined into their weighted centroid. This guarantees that the final palette contains only visually distinct hues.")
+h2("5.3 Merging near-identical colours")
+P(f"Gradients often split into two clusters that look the same. In automatic mode, any two centres closer than "
+  f"{clustering.MERGE_DELTA_E} Delta-E are merged into their weighted average, repeatedly, until no such pair is left.")
 
-h2("5.4 Dual-Centroid Gaussian Kernel Preference Learning")
-P("To personalize palette recommendations without collecting invasive telemetry or requiring massive training sets, PaletteAI models "
-  "user aesthetics in an 8-dimensional normalized feature space:")
+h2("5.4 Preference ranking")
+P("Each palette is turned into eight numbers between 0 and 1:")
 table([
-    ["Feature Key", "Aesthetic Meaning", "Mathematical Formulation"],
-    ["mean_lightness", "Overall lightness of palette", "Coverage-weighted mean L* divided by 100."],
-    ["lightness_spread", "Dynamic range / lightness variety", "Weighted standard deviation of L* normalized by 40."],
-    ["mean_chroma", "Overall color saturation / vividness", "Coverage-weighted mean chroma hypot(a*, b*) normalized by 80."],
-    ["max_chroma", "Vividness of most saturated accent", "Maximum single chroma value normalized by 120."],
-    ["contrast_spread", "Internal contrast ratio variety", "log(CR_max) / log(21), scaling the maximum internal contrast to [0, 1]."],
-    ["size", "Number of distinct colors", "Palette size k normalized by 10."],
-    ["warmth", "Warm vs. cool chromatic balance", "Chroma-weighted projection onto 70 deg hue angle in Lab (yellow-orange axis)."],
-    ["hue_diversity", "Circular variance of color hues", "1 minus length of the mean hue resultant vector; faded out for near-neutral palettes."],
+    ["Feature", "Meaning", "How it is computed"],
+    ["mean_lightness", "How light the palette is overall", "Coverage-weighted mean L*, divided by 100"],
+    ["lightness_spread", "Light-to-dark range", "Weighted standard deviation of L*, divided by 40"],
+    ["mean_chroma", "How saturated overall", "Weighted mean chroma (distance from grey in a*, b*), divided by 80"],
+    ["max_chroma", "How vivid the strongest accent is", "Largest chroma, divided by 120"],
+    ["contrast_spread", "Best contrast available inside the palette", "log(max contrast ratio) / log(21)"],
+    ["size", "How many colours", "k divided by 10"],
+    ["warmth", "Warm vs cool", "Chroma-weighted projection onto the yellow-orange direction (70 degrees) in Lab"],
+    ["hue_diversity", "How many different hues", "1 minus the length of the mean hue vector; faded out for near-grey palettes"],
 ], [0.18, 0.32, 0.50])
+P(f"A palette x is scored as the average similarity to the palettes the user liked minus the average similarity to the "
+  f"ones they disliked. Similarity is a Gaussian kernel, K(u, v) = exp(-&Sigma; w<sub>j</sub>(u<sub>j</sub> - v<sub>j</sub>)<sup>2</sup> "
+  f"/ (2&sigma;<sup>2</sup>)), with &sigma; = {ranking.KERNEL_WIDTH}. The weights w<sub>j</sub> are what makes it adapt: "
+  "w<sub>j</sub> = 1 + 4 |mean of liked<sub>j</sub> - mean of disliked<sub>j</sub>|, scaled so they average 1. If a user's "
+  "likes and dislikes differ mostly in, say, warmth, warmth starts to count more than the other features. With no feedback "
+  "every palette scores 0 and the library keeps its normal order. Each ranked palette also gets a short reason, such as "
+  "\"warmer than the palettes you disliked\".")
 
-P("For a user profile with a set of liked palettes <i>A</i> and disliked palettes <i>B</i>, any candidate palette <i>x</i> is scored as:<br/>"
-  "&nbsp;&nbsp;&nbsp;&nbsp;<b>score(x) = (1 / |A|) &sum;<sub>a &isin; A</sub> K(x, a) - (1 / |B|) &sum;<sub>b &isin; B</sub> K(x, b)</b><br/>"
-  f"Where <i>K(u, v) = exp( - &sum;<sub>j</sub> w<sub>j</sub>(u<sub>j</sub> - v<sub>j</sub>)<sup>2</sup> / (2&sigma;<sup>2</sup>) )</i> is a weighted "
-  f"Gaussian kernel with bandwidth &sigma; = {ranking.KERNEL_WIDTH}. The feature weights adapt dynamically based on feedback separation:<br/>"
-  "&nbsp;&nbsp;&nbsp;&nbsp;<b>w<sub>j</sub> = 1 + 4 |mean<sub>A, j</sub> - mean<sub>B, j</sub>|</b> &nbsp;&nbsp;&nbsp;&nbsp;(normalized to mean 1.0)<br/>"
-  "Features that cleanly separate liked palettes from disliked palettes receive high weights, tailoring the distance metric to the user's personal aesthetic criteria.")
-
-# ------------------------------------------------------------ 6. VIZ & Accessibility
-h1("6. How It Was Made: Visualization & Accessibility (VIZ)")
-P("PaletteAI enforces a strict 'never color alone' rule across its entire interface. Swatches, bar charts, and contrast tables are "
-  "designed to be universally legible across assistive technologies, high-contrast modes, and monochrome displays.")
+# ------------------------------------------------------------ 6. VIZ
+h1("6. VIZ: What the User Sees")
+P("Our rule was that colour is never the only way something is shown. Every result that uses colour also says it in text.")
 bullets([
-    "<b>Universal Text Contrast on Swatches:</b> Every swatch dynamically displays its hex code and a descriptive color name (e.g. 'dark blue', 'cream'). Text overlay automatically flips between #000000 and #FFFFFF to maximize WCAG contrast against the swatch background.",
-    "<b>Semantic Data Tables as Charts:</b> All visual charts (composition distribution, silhouette scores, and feature weights) are structured as semantic HTML data tables with row/column headers, captions, and text percentages, ensuring full screen-reader accessibility.",
-    "<b>Dichromatic CVD Live Simulation:</b> Users can inspect both the extracted palette and the original preview image under simulated Protanopia, Deuteranopia, and Tritanopia, revealing potential visual clashes before design deployment.",
-    "<b>Geometric Harmony Generator:</b> Calculates exact mathematical harmonies across the HSL color wheel (Complementary, Analogous, Triadic, Split-Complementary, Tetradic, and Monochromatic).",
-    "<b>Keyboard Navigation & ARIA Compliance:</b> Complete tab switching via Arrow, Home, and End keys, visible high-contrast focus rings, skip-to-content links, and dynamic ARIA live status announcements.",
-    "<b>Reduced Motion:</b> The extraction loader, sample-card hover and name-field jitter are disabled or made static when the operating system requests reduced motion.",
-    "<b>Readable Colour Names:</b> Names are worked out per palette, so two clusters in the same hue family are told apart ('red (darker)', 'red (lighter)') and pale low-chroma colours read as 'beige' or 'cream' instead of a misleading hue.",
-    "<b>Results Brought Into View:</b> After extraction the result scrolls to the top of the screen and receives keyboard focus; a loader with a text label shows progress during slower extractions.",
-    "<b>Contrast-Checked Styling:</b> Decorative third-party styles were adjusted where they failed WCAG AA; for example, the pixel-art name field's orange was deepened from about 2.8:1 to about 4.9:1 against white text.",
-    "<b>Forced Colours:</b> The pixel wordmark, the name field and the 3D button fall back to system colours in Windows high-contrast mode.",
+    "<b>Swatches</b> show the HEX code, a plain name (for example \"dark blue\", \"cream\", or \"red (darker)\" / \"red (lighter)\" "
+    "when two reds appear) and the percentage of the image they cover. The label switches between black and white, whichever "
+    "is more readable on that swatch.",
+    "<b>Contrast</b>: a full table of every colour pair, with the ratio and AA / AAA pass or fail written out. There is also a "
+    "separate contrast checker for any two colours.",
+    "<b>Colour-blindness previews</b> of both the image and the palette for protanopia, deuteranopia and tritanopia.",
+    "<b>Harmonies</b>: complementary, analogous, triadic, split-complementary, tetradic and monochromatic, from any base colour.",
+    "<b>Charts</b> for palette composition, the silhouette score of every k that was tried, the learned feature weights and the "
+    "ranking scores. Each chart is a real HTML table underneath, so a screen reader can read it.",
+    "<b>Keyboard and screen readers</b>: tabs work with the arrow, Home and End keys, focus is always visible, there is a "
+    "skip link, and status messages are announced.",
+    "<b>Themes and motion</b>: light and dark themes, Windows high-contrast mode is respected, and animations stop when the "
+    "system asks for reduced motion.",
+    "<b>Small things we fixed after testing</b>: the result now scrolls into view and takes focus after extraction, and one "
+    "borrowed input style had white text on orange at about 2.8:1, so we darkened the orange to about 4.9:1.",
 ])
 
 story.append(PageBreak())
 
 # ------------------------------------------------------------ 7. APP & DEV
-h1("7. How It Was Made: Web Application (APP) & Developer Platform (DEV)")
-h2("7.1 Local-First Architecture & Zero-Build SPA")
-P("The application is packaged as a local-first web service powered by FastAPI and Uvicorn. The frontend contains no React, Vue, "
-  "Webpack, or Vite build steps: it is delivered as pure semantic HTML5, CSS3, and modern vanilla ES6 JavaScript. Profiles operate "
-  "locally without authentication friction, allowing multiple personas to maintain isolated libraries and preference models on the "
-  "same machine. Twelve sample images ship with the app: nine drawn in code (including a logo with transparency and a "
-  "grayscale gradient as edge cases) and three IIT Kanpur photographs from Wikimedia Commons, so the whole application can be "
-  "demonstrated offline.")
+h1("7. APP and DEV: Running It and Building On It")
+h2("7.1 The app")
+P("PaletteAI is one Python process: FastAPI with Uvicorn, serving the API and the static frontend. The frontend is plain "
+  "HTML, CSS and JavaScript with no framework and no build step, and nothing is loaded from the internet, so it works "
+  "offline on the demo laptop. Setup is <code>pip install -r requirements.txt</code> and then <code>python run.py</code>, "
+  "which opens http://127.0.0.1:8000. There is no login; instead, a profile name keeps each person's library and "
+  "preferences separate, which is enough for a local app. The tabs are Extract, Library &amp; ranking, Contrast, Harmony "
+  "and Developers.")
+P("The 12 sample images are nine drawn in code (including a logo with transparency and a grey gradient, both edge cases) "
+  "and three photos of IIT Kanpur from Wikimedia Commons, credited on their cards.")
 
-h2("7.2 Safe Extensible Plugin Ecosystem")
-P("PaletteAI can be extended through two decoupled plugin paradigms without touching core code:")
+h2("7.2 The plugin system")
+P("Other teams can add features without touching our code, in two ways:")
 table([
-    ["Plugin Type", "Mechanism", "UI Rendering & Isolation", "Example Implementation"],
-    ["Local Python Plugin", "Stored in plugins/<name>/plugin.py; imports Host API; registers panels and FastAPI sub-routers.", "Renders typed JSON blocks in registered slots (palette.result, library); runs in-process.", "plugins/tints_and_shades"],
-    ["Remote Webhook Plugin", "Standalone HTTP microservice; registers hook URL via REST API or Developer tab.", "Receives JSON event payloads; returns typed blocks; guarded by strict 3-second timeout.", "examples/webhook_plugin.py"],
-], [0.18, 0.32, 0.30, 0.20])
-P("<b>XSS Security Guarantee:</b> Plugin panels cannot return raw HTML or JavaScript. Panels consist entirely of structured JSON blocks "
-  "(<code>text</code>, <code>status</code>, <code>stat</code>, <code>swatches</code>, <code>table</code>, <code>bars</code>) which are rendered safely by the core client. "
-  "If a plugin raises an uncaught exception, times out, or returns an invalid payload, the core system isolates the fault, displays "
-  "an 'unavailable' indicator, and continues operating without interruption.")
+    ["Kind", "How it is added", "What it can do", "Example"],
+    ["In-process (Python)", "A folder plugins/<name>/plugin.py, loaded at start-up", "Add API routes under /api/v1/ext/<name>/ and panels in the result and library slots", "plugins/tints_and_shades"],
+    ["Webhook (HTTP)", "POST /api/v1/plugins with a URL, or from the Developers tab", "Receive an event when a palette is shown and return a panel", "examples/webhook_plugin.py"],
+], [0.18, 0.30, 0.34, 0.18])
+P("Panels are not HTML. A plugin returns a list of typed blocks (<code>text</code>, <code>status</code>, <code>stat</code>, "
+  "<code>swatches</code>, <code>table</code>, <code>bars</code>) and our frontend draws them, so a plugin cannot inject "
+  f"scripts into the page. A webhook gets {pa_plugins.HOOK_TIMEOUT_SECONDS:g} seconds to answer. If it is slow, crashes or "
+  "returns something invalid, its panel shows \"unavailable\" with the reason and the rest of the page works as normal. "
+  "docs/PLUGINS.md has the full guide with request and response examples.")
+
+# ------------------------------------------------------------ 8. API
+h1("8. API Reference")
+P(f"The full specification is OpenAPI {spec['openapi']}, generated by FastAPI from our typed models and served live at "
+  "<code>/openapi.json</code> (interactive docs at <code>/docs</code>). A copy is saved to docs/openapi.json on every build. "
+  "All routes are under <code>/api/v1</code> and use JSON unless stated.")
+h2("8.1 Conventions")
+bullets([
+    "<b>Errors</b> always have the same shape: <code>{\"detail\": {\"code\": \"...\", \"message\": \"...\"}}</code>. The code is "
+    "machine-readable (for example <code>file_too_large</code>, <code>unsupported_type</code>, <code>fully_transparent</code>, "
+    "<code>not_found</code>, <code>validation_error</code>) and the message is meant for people.",
+    "<b>Users</b> are identified by a <code>user</code> field or query parameter (the profile name). There is no authentication.",
+    "<b>Colours</b> are given and returned as HEX strings (#RRGGBB); the short form #RGB is accepted on input.",
+    "<b>Status codes</b>: 200 OK, 201 created, 204 deleted, 400 bad input, 404 not found, 409 already exists, 413 too large, "
+    "415 wrong file type, 422 the request or image could not be processed.",
+])
+
+h2("8.2 Endpoints")
+
+
+def _schema_name(s):
+    if not s:
+        return ""
+    if "$ref" in s:
+        return s["$ref"].split("/")[-1]
+    if s.get("type") == "array":
+        return "array of " + (_schema_name(s.get("items")) or "items")
+    if "anyOf" in s:
+        return " or ".join(_schema_name(x) or x.get("type", "") for x in s["anyOf"])
+    return s.get("type", "")
+
+
+def _fields(name):
+    sch = spec["components"]["schemas"].get(name, {})
+    req = set(sch.get("required", []))
+    out = []
+    for k, v in (sch.get("properties") or {}).items():
+        out.append(f"{k}{'*' if k in req else ''}: {_schema_name(v) or 'value'}")
+    return "; ".join(out)
+
+
+for path, ops in spec["paths"].items():
+    for method, op in ops.items():
+        rows = [["", f"{method.upper()} {path}"]]
+        rows.append(["Purpose", op.get("summary", "")])
+        desc = (op.get("description") or "").strip().split("\n\n")[0].replace("\n", " ")
+        if desc:
+            rows.append(["Details", desc[:400]])
+        params = op.get("parameters", [])
+        if params:
+            rows.append(["Parameters", "; ".join(
+                f"{p['name']} ({p['in']}{', required' if p.get('required') else ''}, {_schema_name(p.get('schema')) or 'value'})"
+                for p in params)])
+        body = (op.get("requestBody") or {}).get("content") or {}
+        for ctype, b in body.items():
+            nm = _schema_name(b.get("schema"))
+            f = _fields(nm) if nm else ""
+            if nm.startswith("Body_"):
+                nm = "form fields"
+            rows.append(["Request body", f"{ctype}: {nm}" + (f" ({f})" if f else "")])
+        resp = []
+        for code, r in op.get("responses", {}).items():
+            ok_schema = ""
+            for _ct, c in (r.get("content") or {}).items():
+                ok_schema = _schema_name(c.get("schema"))
+            if code.startswith("2"):
+                resp.append(f"{code} {r.get('description', '')}" + (f" -> {ok_schema}" if ok_schema else ""))
+            else:
+                resp.append(f"{code} {r.get('description', '')}")
+        rows.append(["Responses", "; ".join(resp)])
+        cells = [[Paragraph(f"<font face='Courier-Bold'>{escape(rows[0][1])}</font>", CELLB), ""]]
+        cells += [[Paragraph(f"<b>{escape(a)}</b>", CELL), Paragraph(escape(b), CELL)] for a, b in rows[1:]]
+        t = Table(cells, colWidths=[0.16 * W, 0.84 * W])
+        t.setStyle(TableStyle([
+            ("GRID", (0, 0), (-1, -1), 0.4, BORDER_COLOR),
+            ("SPAN", (0, 0), (-1, 0)),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e0f2fe")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 2.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+        ]))
+        story.append(KeepTogether([t, Spacer(1, 5)]))
+
+h2("8.3 Data models")
+P("Fields marked * are required. These are the response and request models referred to above.")
+schema_rows = [["Model", "Fields"]]
+for name, sch in sorted(spec["components"]["schemas"].items()):
+    if sch.get("properties") and not name.startswith(("HTTPValidation", "Validation", "Body_")):
+        schema_rows.append([name, _fields(name)])
+table(schema_rows, [0.22, 0.78])
+
+h2("8.4 Example calls")
+story.append(Preformatted(
+    "# upload an image and get its palette (automatic number of colours)\n"
+    "curl -F file=@poster.png http://127.0.0.1:8000/api/v1/images\n\n"
+    "# same, but force 6 colours\n"
+    "curl -F file=@poster.png -F k=6 http://127.0.0.1:8000/api/v1/images\n\n"
+    "# save palette 3 for user 'asha' and like it, then get her ranking\n"
+    "curl -X PUT -H \"Content-Type: application/json\" -d '{\"user\":\"asha\"}' http://127.0.0.1:8000/api/v1/palettes/3/save\n"
+    "curl -X PUT -H \"Content-Type: application/json\" -d '{\"user\":\"asha\",\"value\":\"like\"}' http://127.0.0.1:8000/api/v1/palettes/3/feedback\n"
+    "curl \"http://127.0.0.1:8000/api/v1/ranking?user=asha\"\n\n"
+    "# check a text/background pair\n"
+    "curl -H \"Content-Type: application/json\" -d '{\"foreground\":\"#FFFFFF\",\"background\":\"#0D366B\"}' http://127.0.0.1:8000/api/v1/contrast\n\n"
+    "# register a webhook plugin\n"
+    "curl -H \"Content-Type: application/json\" -d '{\"name\":\"my-plugin\",\"hook_url\":\"http://127.0.0.1:9000/hook\",\"slots\":[\"palette.result\"]}' http://127.0.0.1:8000/api/v1/plugins",
+    ParagraphStyle("Ex", parent=MONO, fontSize=6.8, leading=8.4)))
+story.append(Spacer(1, 4))
+P("Error example (a 15 MB upload): <code>413 {\"detail\": {\"code\": \"file_too_large\", \"message\": \"...\"}}</code>.")
 
 # ============================================================ PART B: CROSS-DEV PROJECT
 story.append(PageBreak())
-h1("Part B: Cross-Dev Project (Palette Fixer & Re-Scorer)")
+h1("Part B: Cross-Dev Project (Palette Fixer &amp; Re-Scorer for VibeCheck)")
 
-h1("8. Cross-Development System Architecture & Hook Integration")
-P("For the cross-development requirement, Team FORSAKEN partnered with team <b>'rm -rf sleep'</b>, who developed <b>VibeCheck</b>, "
-  "an automated aesthetic and design checker for student club event posters. While VibeCheck flags aesthetic defects (such as colors "
-  "deviating from a team's brand identity), it provides no automated corrective recommendations. Our cross-dev plugin, "
-  "<b>'Palette Fixer & Re-Scorer'</b> (crossdev/palette_fixer), integrates directly into VibeCheck's result slot to resolve this bottleneck.")
+h1("9. What the Plugin Does")
+P("VibeCheck, by team rm -rf sleep, learns a design team's visual style from its past posts and tells a designer, before "
+  "they design, how well their plan fits that style: a score out of 100, the reasons, and the closest past posts. One of "
+  "the reasons it often gives is that the colours are far from the team's signature palette. It says what is wrong but "
+  "not how to fix it. Our plugin fills that gap.")
+P("After every VibeCheck check, the plugin looks at the plan's colours, finds the ones that are furthest from the team's "
+  "signature colours, and suggests up to three swaps. It makes sure a swap does not make the main text unreadable. Then "
+  "it recolours the checked images with those swaps and submits them to VibeCheck as a new check, so the \"score with "
+  "these swaps\" number is VibeCheck's own score, not a guess of ours. The result appears as a panel inside VibeCheck's "
+  "result page. The plugin only suggests; it never changes the designer's files.")
 story.append(generate_diagram(crossdev_diagram_draw, width=1200, height=280, target_width_ratio=1.0))
-callout("Integration status",
-        "The contract below was checked against VibeCheck's source code (github.com/Pro-Nil/vibecheck) and tested against a "
-        "running VibeCheck instance (its fake-CLIP test mode, with a synthetic team). The plugin works end to end there. "
-        "One change is needed in VibeCheck itself: it calls plugins from inside an async request handler, which blocks its "
-        "server, so a plugin cannot call VibeCheck's API back during check.completed. Running the plugin calls in a thread "
-        "pool (one line, starlette.concurrency.run_in_threadpool) fixes it; the change has to be made by team rm -rf sleep. Section 10.6 "
-        "repeats the round trip against a mock with the same API shapes on every build.", kind="note")
 
-h2("8.1 The Integration Contract & Event Lifecycle")
-P("When VibeCheck finishes a check it POSTs a <code>check.completed</code> event to the plugin: the team, the check's score, "
-  "verdict and reasons, its <code>plan_palette</code> (colours with coverage), the URLs of the checked images, and "
-  "<code>api_base</code>. Palette Fixer answers within VibeCheck's 5-second limit with a Panel in VibeCheck's own format "
-  "(summary, metrics, items, chart), which VibeCheck draws inside its result page.")
+h2("9.1 How it connects to VibeCheck")
 table([
-    ["Component", "Cross-Dev Implementation Details"],
-    ["ETL Ingestion", "Parses the check.completed event; fetches the team's signature palette from GET /teams/{id}/style-profile; validates every HEX value; records each run (input, suggestions, re-score, timing) in a local SQLite file (fixer_log.db)."],
-    ["AIML Engine", "CIEDE2000 distance to the nearest signature colour; colours more than 10 Delta-E away are off-brand; at most 3 swaps; text/background roles inferred (largest colour = background, best-contrast colour = text) and WCAG AA protected. Re-scoring: the checked images are recoloured with the swaps (pixels shifted in CIELAB, texture kept) and submitted to POST /teams/{id}/checks, so the new score is VibeCheck's own."],
-    ["VIZ Presentation", "VibeCheck Panel: current score and score with swaps, swaps with Delta-E before and after, contrast result in words, VibeCheck's colour reason, and a bar chart of the average distance from the team palette."],
-    ["APP Deployment", "Either imported by VibeCheck and called in-process (handle_event), or run as a service with POST /hook on port 8010 and registered through POST /plugins. Calls back to VibeCheck stay inside its 5-second budget; the plugin ignores the re-score checks it submits itself, so it never recurses."],
-    ["DEV Verification", "OpenAPI documentation at /docs; tests against a mock that copies VibeCheck's API shapes and validate the Panel against a copy of VibeCheck's schema; CIEDE2000 checked against published reference pairs."],
-], [0.18, 0.82])
+    ["VibeCheck feature (from their API)", "How we use it"],
+    ["POST /plugins {name, url, slot: \"result\"}", "Registers our webhook, http://127.0.0.1:8010/hook, once."],
+    ["check.completed event, POSTed to our URL", "Gives us the check (score, reasons, plan_palette with coverage, description, image URLs), the team and api_base."],
+    ["GET /teams/{id}/style-profile", "The team's signature_palette, which is what we move colours towards."],
+    ["POST /teams/{id}/checks (multipart images, description, kind)", "Re-scores the recoloured images. We tag the description with [palette-fixer re-score] and skip events for those checks, so the plugin never triggers itself."],
+    ["Panel {title, summary, metrics, items, chart}", "What we return. VibeCheck draws it in its result page. It must arrive within 5 seconds."],
+], [0.40, 0.60])
 
-# ------------------------------------------------------------ 9. Algorithmic Fix Engine
-h1("9. Algorithmic Fix Engine, CIEDE2000 & Contrast Invariants")
-h2("9.1 Exact CIEDE2000 Implementation & Reference Validation")
-P("Color discrepancies are evaluated using the complete CIEDE2000 formulation (Sharma et al. 2005). The implementation is verified "
-  "against published CIE standard reference pairs, ensuring sub-decimal precision across all chromatic and neutral regions.")
+h1("10. The Five Components of the Plugin")
+P("The course brief says a cross-dev plugin should use the base system's API rather than build its own pipelines, but still "
+  "needs its own data, adaptive and visual parts. This is how each component looks in Palette Fixer.")
+h2("10.1 ETL")
+P("Input is VibeCheck's <code>check.completed</code> event. We parse it defensively (VibeCheck's field names are read in "
+  "client.py only, so a change on their side means changing one file), validate and normalise every HEX value and drop "
+  "anything that is not a colour. We then fetch the team's signature palette and, for re-scoring, download the checked images "
+  "from VibeCheck. Every run is stored in a local SQLite file (fixer_log.db): the event, the signature palette, the swaps, the "
+  "re-score result, how long it took and the outcome (ok, no colours, own re-score, error). <code>GET /runs</code> shows the "
+  "latest runs, which is how we debugged it and how the numbers in Section 12.6 were collected.")
+h2("10.2 AIML")
+bullets([
+    f"<b>Off-brand detection:</b> CIEDE2000 from each plan colour to its nearest signature colour. Further than "
+    f"{fixer.MISMATCH_DELTA_E} is off-brand, as is any colour VibeCheck itself flagged in its reasons.",
+    f"<b>Choosing swaps:</b> worst colours first, at most {fixer.MAX_SWAPS}. Each signature colour is used at most once, and a "
+    "swap never creates a colour that is already in the palette, so the result stays a set of distinct colours.",
+    "<b>Keeping text readable:</b> we guess which colour is the background (the one with the largest share) and which is the "
+    "text (the one with the best contrast against it). A swap is only accepted if that pair still passes WCAG AA (4.5:1), or, "
+    "if it already failed, does not get worse. If the direct swap breaks that, we try the signature colour's hue and chroma "
+    "at the original colour's lightness. If that also fails, the colour is left alone and the panel says why.",
+    "<b>Re-scoring:</b> each pixel of the checked images is moved by the same Lab offset as its nearest plan colour, which "
+    "keeps texture and shading, and the result is sent to VibeCheck. Because VibeCheck's model learns from each team's own "
+    "posts, the score we show adapts to that team, and it changes as VibeCheck retrains.",
+])
+h2("10.3 VIZ")
+P("The panel uses VibeCheck's own Panel format so it looks native: the score now and with the swaps, how many colours were "
+  "swapped, the text contrast after the swaps, a line per swap (\"Replace #3CF01A with #2FC3B5 (signature colour)\" with the "
+  "Delta-E before and after), colours that were left alone and why, VibeCheck's own colour reason, and a bar chart of the "
+  "average distance from the team palette before and after. Everything is written in words as well as colours.")
+h2("10.4 APP")
+P("A small FastAPI service (crossdev/palette_fixer/app.py) with <code>POST /hook</code> on port 8010, plus "
+  "<code>/health</code>, <code>/runs</code> and its own <code>/docs</code>. It is started with "
+  "<code>python -m crossdev.palette_fixer.app</code>. It can also be imported and called directly "
+  "(<code>handle_event</code>) if VibeCheck ever wants to run it in-process. If VibeCheck's API is slow or down, or the "
+  "check has no images, the plugin returns a short panel explaining that instead of failing.")
+h2("10.5 DEV")
+P("We built the plugin only from VibeCheck's published API and source on GitHub (Pro-Nil/vibecheck). We did not get any "
+  "special access. For development we wrote a mock VibeCheck (mock_vibecheck.py) with the same request and response shapes, "
+  "so we could test without their heavy CLIP model. The tests check our Panel against a copy of VibeCheck's Panel schema. "
+  "The API section is left out here as the brief allows; VibeCheck's API is documented in their report and at their /docs.")
 
-h2("9.2 Off-Brand Detection & Swap Budgeting")
-P(f"A poster color is classified as off-brand if its CIEDE2000 distance to the closest signature color exceeds {fixer.MISMATCH_DELTA_E} Delta-E, "
-  f"or if it is explicitly tagged in VibeCheck's failure reasons. To prevent drastic over-correction that destroys the artist's original vision, "
-  f"the engine enforces a hard budget of at most {fixer.MAX_SWAPS} swaps, prioritizing the most egregious mismatches first while "
-  "ensuring that replacement colors remain distinct.")
+h1("11. Integration Problems We Hit")
+P("The first version timed out every time against the real VibeCheck. VibeCheck called plugins from inside an async request "
+  "handler, which blocked its server until the plugin answered. Our plugin calls VibeCheck back (for the style profile and "
+  "the re-score), so it was waiting on a server that was waiting on it, until the 5-second limit ran out. We found this by "
+  "reading their code, confirmed it with a one-line local change (running plugins in a thread pool with "
+  "<code>run_in_threadpool</code>), and sent it to team rm -rf sleep. They added the fix to their repository in commit "
+  "cf4beee, \"Run plugin calls and scoring off the event loop so plugins can call the API back\". The results below are from "
+  "their GitHub version with no local changes.")
+P("Two smaller things came up while testing. Checks with only a description and no images have no colours, so the plugin "
+  "has nothing to fix; we changed its message to tell the user to add images. And every re-score shows up as an extra entry in "
+  "VibeCheck's History, tagged [palette-fixer re-score]. That is honest about what happened, but it adds clutter, and it is "
+  "something to agree with the VibeCheck team.")
 
-h2("9.3 Typographic Contrast Invariant Protection")
-callout("Strict Contrast Invariant",
-        "A proposed color swap is strictly rejected if it degrades the palette's primary text/background contrast below "
-        "the WCAG AA threshold (4.5:1 for normal text). If the original design was already below 4.5:1, the engine permits "
-        "the swap only if the contrast ratio does not decrease. If a direct signature swap would violate contrast, the engine "
-        "tries one alternative: the signature colour's hue and chroma at the original colour's lightness, which keeps its "
-        "light/dark role. If neither candidate is safe, the color is skipped with a clear explanation.",
-        kind="note")
-
-# ============================================================ PART C: EMPIRICAL BENCHMARKS & VERIFICATION
+# ============================================================ PART C: RESULTS AND TESTING
 story.append(PageBreak())
-h1("Part C: Empirical Benchmarks & Verification")
+h1("Part C: Results and Testing")
+P("Everything in this part was produced by running the actual code while this PDF was being built (except Section 12.6, "
+  "which is read from the plugin's log of runs against the real VibeCheck). If the code changes, the numbers change with it.")
 
-h1("10. Verification, Validation & Live Empirical Results")
-P("To ensure complete transparency and prevent documentation drift, every number, score, and test metric presented in this report "
-  "was produced by executing the real codebase during the PDF build process.")
-
-h2("10.1 Ground Truth Recovery on Synthetic Stripe Image")
-P("A synthetic benchmark image containing exactly 4 known RGB colors [(226, 86, 60), (28, 52, 84), (245, 239, 224), (44, 142, 132)] "
-  "was submitted to the extraction pipeline. The algorithm selected <b>k = 4</b> automatically and recovered 100% of the true colors:")
+h1("12. Results")
+h2("12.1 Can it find colours we already know?")
+P("We made a test image of four flat stripes with known colours, (226, 86, 60), (28, 52, 84), (245, 239, 224) and "
+  "(44, 142, 132), and ran it through the normal upload endpoint.")
 exact_match = {c["hex"] for c in flat["colors"]} == {"#%02X%02X%02X" % t for t in truth}
-P(f"Ground Truth Recovery Verdict: <b>{'SUCCESS (100% Exact Match)' if exact_match else 'FAILED'}</b>. Recovered Centroids: "
-  + ", ".join(f"{c['hex']} ({c['share']*100:.1f}%)" for c in flat["colors"]))
+P(f"It chose k = {flat['k']} by itself and the colours came back "
+  f"<b>{'exactly right' if exact_match else 'NOT exactly right'}</b>: "
+  + ", ".join(f"{c['hex']} ({c['share']*100:.1f}%)" for c in flat["colors"]) + ".")
 
-h2("10.2 Noise Handling & Fallback Heuristic Verification")
-P(f"Uniform RGB noise (120x120 pixels) was submitted to test clustering behavior under extreme entropy. The maximum silhouette score "
-  f"achieved was <b>{max(s['silhouette'] for s in noise['k_scores']):.3f}</b>, well below the confident threshold of {clustering.MIN_CONFIDENT_SILHOUETTE}. "
-  f"The system successfully triggered the automated fallback mechanism: <b>fallback_used = {str(noise['fallback_used']).lower()}</b>, "
-  f"selecting <b>k = {noise['k']}</b> with reason: <i>'{escape(noise['reason'])}'</i>.")
+h2("12.2 What happens with pure noise?")
+P(f"A 120 x 120 image of random pixels has no real clusters. Its best silhouette score was "
+  f"<b>{max(s['silhouette'] for s in noise['k_scores']):.3f}</b>, under the {clustering.MIN_CONFIDENT_SILHOUETTE} threshold, "
+  f"so the fallback was used (fallback_used = {str(noise['fallback_used']).lower()}, k = {noise['k']}). The reason shown to the "
+  f"user was: <i>\"{escape(noise['reason'])}\"</i>")
 
-h2("10.3 Ingestion Benchmarks & Test Sample Palette Extraction")
-bench_rows = [["Sample Name", "k", "Silhouette", "Fallback", "Palette Swatches (Coverage)", "Dominant Colors"]]
-for name, p in list(samples.items()) + [("Stripes (Ground Truth)", flat), ("Uniform Noise", noise)]:
+h2("12.3 All sample images")
+bench_rows = [["Sample", "k", "Silhouette", "Fallback", "Palette (by coverage)", "Top colours"]]
+for name, p in list(samples.items()) + [("Stripes (known colours)", flat), ("Random noise", noise)]:
     bench_rows.append([
-        name, str(p["k"]), "-" if p["silhouette"] is None else f"{p['silhouette']:.3f}",
+        SAMPLE_TITLES.get(name, name), str(p["k"]), "-" if p["silhouette"] is None else f"{p['silhouette']:.3f}",
         "Yes" if p["fallback_used"] else "No",
         strip([c["hex"] for c in p["colors"]], [c["share"] for c in p["colors"]]),
         ", ".join(f"{c['hex']} ({c['percent']:.0f}%)" for c in p["colors"][:3]),
     ])
-table(bench_rows, [0.18, 0.05, 0.09, 0.08, 0.28, 0.32])
+table(bench_rows, [0.20, 0.05, 0.09, 0.08, 0.28, 0.30])
 
-h2("10.4 Real Photographs: Automatic vs Fixed Colour Count")
-P("The synthetic samples have clean, separable colours. The three IIT Kanpur photographs (Wikimedia Commons) test the "
-  "pipeline on real campus scenes with foliage, shadows and sky. Each photo was extracted twice: once in automatic mode "
-  "(silhouette-selected k) and once with k fixed at 6 through the same API parameter the interface exposes.")
-photo_rows = [["Photograph", "Auto k", "Silhouette", "Automatic palette", "Fixed k = 6 palette"]]
+h2("12.4 Real photos: automatic k vs k = 6")
+P("The drawn samples have clean colours. The three IIT Kanpur photos are harder: leaves, shadows, sky and brick. Each was "
+  "extracted twice, once in automatic mode and once with k fixed at 6.")
+photo_rows = [["Photo", "Auto k", "Silhouette", "Automatic", "k = 6"]]
 for name, p6 in photo_k6.items():
     pa = samples[name]
     photo_rows.append([
-        SAMPLE_TITLES[name],
-        str(pa["k"]), "-" if pa["silhouette"] is None else f"{pa['silhouette']:.3f}",
+        SAMPLE_TITLES[name], str(pa["k"]), "-" if pa["silhouette"] is None else f"{pa['silhouette']:.3f}",
         strip([c["hex"] for c in pa["colors"]], [c["share"] for c in pa["colors"]]),
         strip([c["hex"] for c in p6["colors"]], [c["share"] for c in p6["colors"]]),
     ])
 table(photo_rows, [0.22, 0.08, 0.10, 0.30, 0.30])
-P("<b>Observation.</b> On busy photographs the silhouette score prefers a small k: a few broad, well-separated groups "
-  "(for example sky, shadow and brick) score higher than many overlapping ones, so smaller accents such as flowers merge "
-  "into their neighbours. Fixing k recovers those accents at the cost of less distinct clusters. This is why the interface "
-  "offers both modes: automatic for a faithful summary, a fixed count when the user wants more detail.")
+P("On busy photos the silhouette score likes a small k: a few broad, well-separated groups score better than many "
+  "overlapping ones, so small accents (flowers, signs) get absorbed into their neighbours. Fixing k brings those accents "
+  "back, at the cost of clusters that overlap more. That is why the app lets you choose: automatic for a faithful "
+  "summary, a fixed number when you want detail.")
 
-h2("10.5 Preference Learning Adaptation Dynamics")
-P(f"Profile 'demo' saved all {len(samples)} sample palettes. In the cold start state, all palettes had a score of 0.00. The user then marked "
-  "<b>sunset</b> as liked (+1) and marked <b>mono</b> and <b>forest</b> as disliked (-1). The ranking model adapted immediately:")
+h2("12.5 Does the ranking actually learn?")
+P(f"Profile \"demo\" saved all {len(samples)} sample palettes. Before any feedback, every palette scored 0. We then liked "
+  "<b>sunset</b> and disliked <b>mono</b> and <b>forest</b>:")
 cold_ranks = {it["palette"]["image"]["filename"]: it["rank"] for it in cold["items"]}
-rank_rows = [["Rank (Post)", "Palette Name", "Model Score", "Rank (Pre)", "Feedback", "Learned Explanation"]]
+rank_rows = [["New rank", "Palette", "Score", "Old rank", "Feedback", "Reason shown"]]
 for it in warm["items"]:
     fn = it["palette"]["image"]["filename"]
-    rank_rows.append([
-        str(it["rank"]), fn, f"{it['score']:+.2f}", str(cold_ranks[fn]),
-        it["palette"]["feedback"] or "None", " ".join(it["reasons"])
-    ])
-table(rank_rows, [0.10, 0.14, 0.10, 0.10, 0.10, 0.46])
+    rank_rows.append([str(it["rank"]), fn, f"{it['score']:+.2f}", str(cold_ranks[fn]),
+                      it["palette"]["feedback"] or "-", " ".join(it["reasons"])])
+table(rank_rows, [0.09, 0.15, 0.09, 0.09, 0.10, 0.48])
 learned_wts = sorted(warm["model"]["feature_weights"].items(), key=lambda kv: -kv[1])
-P(f"Model status transitioned from <i>{cold['model']['status']}</i> to <i>{warm['model']['status']}</i>. "
-  "Adapted feature weights: " + ", ".join(f"{warm['model']['feature_labels'][k]} ({v:.2f})" for k, v in learned_wts[:4]) + ".")
+warm_rank = {it["palette"]["image"]["filename"]: it["rank"] for it in warm["items"]}
+P(f"The model went from \"{cold['model']['status']}\" to \"{warm['model']['status']}\". The features it now weighs most: "
+  + ", ".join(f"{warm['model']['feature_labels'][k]} ({v:.2f})" for k, v in learned_wts[:4])
+  + f". The liked palette moved to rank {warm_rank['sunset.png']} and the two disliked ones to ranks "
+  f"{warm_rank['forest.png']} and {warm_rank['mono.png']} out of {len(warm['items'])}; palettes that resemble them moved with them.")
 
-h2("10.6 Cross-Dev Hook Verification (mock with VibeCheck's API shapes)")
+h2("12.6 The plugin against the real VibeCheck")
+if real_runs:
+    P("These are real runs from 26 November 2026, against VibeCheck from its GitHub repository (commit cf4beee) with its "
+      "real CLIP model, two teams (our own test team \"jj\" and a synthetic \"Demo Studio\" team generated by VibeCheck's own data "
+      "script) and sample ideas with off-brand colours. Scores are VibeCheck's own, out of 100.")
+    rr = [["Team", "Swaps suggested", "Distance from team palette (avg)", "Text contrast", "VibeCheck score", "Time"]]
+    for r in real_runs:
+        p = r["p"]
+        f = p["fix"]
+        rr.append([
+            r["team"],
+            "; ".join(f"{s['from']} &rarr; {s['to']}" for s in f["swaps"]),
+            f"{f['mean_delta_e_before']:.1f} &rarr; {f['mean_delta_e_after']:.1f}",
+            f"{f['contrast']['before']}:1 &rarr; {f['contrast']['after']}:1 ({'passes AA' if f['contrast']['passes_aa'] else 'below AA'})",
+            f"{p['event']['check']['score']} &rarr; {p['rescore']['score']}",
+            f"{p.get('elapsed_ms', 0) / 1000:.1f} s",
+        ])
+    table([[Paragraph(c, CELLB if i == 0 else CELL) for c in row] for i, row in enumerate(rr)],
+          [0.17, 0.27, 0.14, 0.20, 0.12, 0.10])
+    P("The swaps always moved the colours much closer to the team's palette (average CIEDE2000 roughly halved) and kept the "
+      "text readable where it was readable before. In one case (the pastel idea) the plan's text contrast was already below AA "
+      "and the swaps left it unchanged, which is the rule working as intended. The score gains are real but small. That is "
+      "expected and worth saying plainly: VibeCheck scores the whole look of a poster with CLIP (layout, shapes, type), and "
+      "colour is only part of that, so fixing colours alone cannot turn an off-brand idea into an on-brand one. The slowest "
+      f"run took {max(r['p'].get('elapsed_ms', 0) for r in real_runs) / 1000:.1f} s, inside VibeCheck's 5-second limit.")
+else:
+    callout("No real VibeCheck runs found",
+            "The plugin's run log has no runs against VibeCheck on port 8030. Run a few checks with images in VibeCheck "
+            "while the plugin is registered, then rebuild.", kind="note")
+
+h2("12.7 The plugin against the mock (repeatable on every build)")
 fix = run["fix"]
-P(f"Sample hook execution on team '{ev['team']['name']}' (signature: {', '.join(run['signature'])}). The mock's score is "
-  "only colour closeness to the signature palette, not VibeCheck's model; it exercises the same requests and responses:")
+P(f"Because the real VibeCheck needs its own data and model, every build also runs the plugin against our mock with the "
+  f"same API shapes, on team \"{ev['team']['name']}\" (signature colours {', '.join(run['signature'])}). The mock's score is "
+  "just colour closeness, not VibeCheck's model.")
+table([["Plan colour", "Suggested", "Delta-E before", "Delta-E after", "Kind of swap"]]
+      + [[s["from"], s["to"], f"{s['delta_e_before']:.1f}", f"{s['delta_e_after']:.1f}", s["kind"]] for s in fix["swaps"]],
+      [0.18, 0.18, 0.18, 0.18, 0.28])
 table([
-    ["Original Color", "Replacement Color", "Delta-E (Before)", "Delta-E (After)", "Transformation Category"],
-] + [[s["from"], s["to"], f"{s['delta_e_before']:.1f}", f"{s['delta_e_after']:.1f}", s["kind"]] for s in fix["swaps"]],
-[0.18, 0.18, 0.18, 0.18, 0.28])
+    ["", "Original", "With suggested swaps"],
+    ["Palette", strip(fix["original"], [1 / len(fix["original"])] * len(fix["original"])),
+     strip(fix["proposed"], [1 / len(fix["proposed"])] * len(fix["proposed"]))],
+    ["Average CIEDE2000 to team palette", f"{fix['mean_delta_e_before']:.2f}", f"{fix['mean_delta_e_after']:.2f}"],
+    ["Text / background contrast", f"{fix['contrast']['before']}:1",
+     f"{fix['contrast']['after']}:1 ({'passes AA' if fix['contrast']['passes_aa'] else 'fails AA'})"],
+    ["Score (mock)", str(ev["check"]["score"]), f"{run['rescore']['score']} ({run['rescore']['score'] - ev['check']['score']:+.1f})"],
+], [0.30, 0.35, 0.35])
 
-table([
-    ["Metric", "Original Poster Palette", "Palette Fixer Suggested Palette"],
-    ["Visual Swatches", strip(fix["original"], [1 / len(fix["original"])] * len(fix["original"])), strip(fix["proposed"], [1 / len(fix["proposed"])] * len(fix["proposed"]))],
-    ["Mean CIEDE2000 to Brand", f"{fix['mean_delta_e_before']:.2f}", f"{fix['mean_delta_e_after']:.2f}"],
-    ["Text / Background Contrast", f"{fix['contrast']['before']}:1", f"{fix['contrast']['after']}:1 ({'Passes WCAG AA' if fix['contrast']['passes_aa'] else 'Fails AA'})"],
-    ["Host score (mock)", str(ev["check"]["score"]), f"{run['rescore']['score']} ({run['rescore']['score'] - ev['check']['score']:+.1f})"],
-], [0.28, 0.36, 0.36])
-
-h2("10.7 Automated Pytest Suite Results")
-P(f"The automated test suite executed live during build: <b>{escape(result_line.strip('= '))}</b> across <b>{n_cases}</b> distinct test cases:")
+h1("13. Unit and Integration Tests")
+P(f"We use pytest. During this build the suite ran with this result: <b>{escape(result_line.strip('= '))}</b>, "
+  f"{n_cases} test cases in total. Run it yourself with <code>python -m pytest tests</code>.")
 test_desc = {
-    "test_core": "Unit test suite: HEX normalization, WCAG contrast against known limits, CIELAB D65 roundtrips, Machado CVD matrices, color harmony geometry, ETL bounds checking, transparency filtering, K-Means cluster count recovery, fallback trigger, determinism, preference ranking feature bounds and weight adaptivity.",
-    "test_api": "Integration test suite: Full FastAPI endpoints, exact color recovery, SHA-256 deduplication, uniform RFC 7807 error codes, preview streaming, multi-user library isolation, feedback ranking reversal, color utility endpoints, local/webhook plugin lifecycle, circuit breaker timeout isolation, and OpenAPI schema compliance.",
-    "test_palette_fixer": "Cross-dev test suite: CIEDE2000 against published Sharma et al. (2005) reference values, HEX sanitization, off-brand swap selection, contrast invariant protection, swap budgeting, full check.completed hook roundtrip, mock host re-scoring, in-process execution, and Panel schema validation.",
+    "test_core": "Unit tests for the pure functions: HEX parsing, WCAG contrast at known values (black/white = 21:1), "
+                 "Lab round trips, the colour-blindness matrices, harmony angles, ETL limits and transparency, K-Means "
+                 "recovering known clusters, the noise fallback, same input giving the same output, and ranking features "
+                 "staying in [0, 1] with weights that move towards the liked palettes.",
+    "test_api": "Integration tests through the real FastAPI app: exact colour recovery via upload, the hash cache, every "
+                "error code, previews, separate libraries per user, feedback reversing the ranking, the colour tool "
+                "endpoints, local and webhook plugins (including a slow plugin timing out without breaking the page), and "
+                "the OpenAPI document.",
+    "test_palette_fixer": "Cross-dev tests: CIEDE2000 against the published Sharma et al. (2005) pairs, HEX cleaning, "
+                          "swap choice, the contrast rule, the three-swap limit, a full check.completed round trip against "
+                          "the mock (including re-scoring and skipping our own re-score checks), in-process mode, and the Panel "
+                          "matching VibeCheck's schema.",
 }
-table([
-    ["Test Module", "Test Cases", "Scope & Architectural Coverage"],
-] + [[f"tests/{f}.py", str(len(v)), test_desc.get(f, "") + f" (Functions: {', '.join(v[:4])}...)"] for f, v in tests.items()],
-[0.22, 0.08, 0.70])
+table([["File", "Tests", "What it covers", ]]
+      + [[f"tests/{f}.py", str(len(v)), test_desc.get(f, "") + " Examples: " + ", ".join(v[:4]) + "."] for f, v in tests.items()],
+      [0.20, 0.07, 0.73])
 
-# ============================================================ PART D: SYNTHESIS & ACADEMIC POLICIES
+# ============================================================ PART D
 story.append(PageBreak())
-h1("Part D: Synthesis & Academic Policies")
+h1("Part D: Scope, Third-Party Code and AI Use")
 
-h1("11. Proposal Commitments vs Delivered System")
-P("The project is judged against the features committed in the proposal. The table below takes each commitment in the order "
-  "the proposal states it and points to where it is implemented and how it is verified in this report.")
+h1("14. Proposal vs What We Delivered")
+P("We were marked against the features in our proposal, so we went through it line by line.")
 table([
-    ["Proposal commitment", "Delivered in", "Evidence"],
-    ["ETL: validate file type, size and integrity of uploads", "etl.py (10 MB limit, Pillow decode check)", "Empty and non-image uploads rejected with clear error codes (Sec. 10, test_api.py)"],
-    ["ETL: normalise images, resize, handle transparency", "etl.py::normalise_image", "Logo sample: transparent pixels ignored and reported on the result"],
-    ["ETL: sample pixels, convert to CIELAB, HEX + coverage", "etl.py (up to 5000 pixels), color.py", "Every palette in Sec. 10.3 lists HEX and coverage"],
-    ["ETL: store metadata, palettes, accessibility, feedback in SQLite", "db.py, service.py", "Schema in Sec. 4.3; feedback persists across restarts"],
-    ["ETL: content hash avoids repeat extraction", "service.py (SHA-256)", "Re-submitting sunset returned cached = " + str(recached).lower()],
-    ["ETL: invalid files return clear errors, never enter the dataset", "etl.py IngestError, main.py handlers", "Sec. 10 error checks; nothing stored on failure"],
-    ["AIML: K-Means in CIELAB", "clustering.py (NumPy, k-means++ seeding)", "Ground-truth recovery, Sec. 10.1"],
-    ["AIML: bounded k range chosen by silhouette, safe fallback", "clustering.py (k = 3-8, fallback k = 5)", "Noise test triggers fallback, Sec. 10.2; photos, Sec. 10.4"],
-    ["AIML: preference ranking from like/dislike using lightness, chroma, contrast spread, palette size", "ranking.py (8 features, adaptive weights)", "Before/after ranking, Sec. 10.5"],
-    ["AIML: report clustering and ranking behaviour on test cases", "This report, Part C", "Sec. 10.1-10.5"],
-    ["VIZ: labelled swatches, HEX, coverage", "static/app.js", "Swatches show HEX, plain-language name and percentage"],
-    ["VIZ: WCAG contrast with explicit pass/fail text", "Contrast checker tab, palette contrast table", "Pass/Fail written in words, not colour alone"],
-    ["VIZ: protanopia, deuteranopia, tritanopia previews", "color.py (Machado et al. 2009)", "Image and palette previews on every result"],
-    ["VIZ: harmony suggestions; preference-ranked library", "Harmony tab; Library & ranking tab", "Six harmony schemes; ranked cards with reasons"],
-    ["VIZ: charts for composition and ranking", "Composition, silhouette, weight and score charts", "Each chart is also a real data table"],
-    ["VIZ: keyboard navigation, visible focus, labels, light/dark themes, colour never the only cue", "index.html, app.css, app.js", "Sec. 6"],
-    ["APP: local FastAPI + HTML/CSS/JS + SQLite", "main.py, static/, db.py", "Runs with one command, no build step, no internet"],
-    ["APP: upload, save, contrast, CVD, harmony, rate", "Extract, Library, Contrast, Harmony tabs", "Demo walkthrough"],
-    ["APP: input validation, clear error states, sample images", "etl.py; samples.py", f"{len(samples)} offline samples incl. 3 IIT Kanpur photos"],
-    ["DEV: endpoints for upload, retrieval, contrast, harmony, CVD, feedback, ranking", "api.py", "Appendix A lists every route"],
-    ["DEV: OpenAPI at /docs and /openapi.json", "FastAPI", "Spec exported to docs/openapi.json at build time"],
-    ["DEV: plugin interface for routes and panels; integration example", "plugins.py, plugins/tints_and_shades, examples/webhook_plugin.py", "Plugin lifecycle tests, Sec. 10.7; docs/PLUGINS.md"],
-], [0.36, 0.30, 0.34])
+    ["Proposal said", "Where it is", "How to check"],
+    ["ETL: check file type, size and integrity", "etl.py (10 MB limit, Pillow check)", "Section 4.1; empty and fake files rejected"],
+    ["ETL: resize, handle transparency", "etl.py", "Logo sample: transparent pixels ignored and reported"],
+    ["ETL: sample pixels, CIELAB, HEX + coverage", "etl.py, color.py", "Every palette in Section 12.3"],
+    ["ETL: store images, palettes, accessibility results, feedback in SQLite", "db.py, service.py", "Section 4.3; feedback survives a restart"],
+    ["ETL: content hash avoids repeat extraction", "service.py (SHA-256)", f"Sunset re-submitted: cached = {str(recached).lower()}"],
+    ["ETL: bad files give clear errors, never enter the data", "etl.py, main.py", "Section 4.1, test_api.py"],
+    ["AIML: K-Means in CIELAB", "clustering.py", "Section 12.1"],
+    ["AIML: bounded k chosen by silhouette, with fallback", "clustering.py (k = 3-8, fallback 5)", "Sections 12.2 and 12.4"],
+    ["AIML: ranking from likes/dislikes using lightness, chroma, contrast spread, size", "ranking.py (8 features)", "Section 12.5"],
+    ["AIML: report clustering and ranking on test cases", "Part C", "Sections 12.1-12.5"],
+    ["VIZ: labelled swatches, HEX, coverage", "static/app.js", "Any result page"],
+    ["VIZ: WCAG ratios with pass/fail in text", "Contrast tab and palette table", "Pass/fail written out"],
+    ["VIZ: protanopia, deuteranopia, tritanopia previews", "color.py", "Every result page"],
+    ["VIZ: harmonies and a ranked library", "Harmony tab, Library tab", "Six schemes; reasons per palette"],
+    ["VIZ: charts for composition and ranking", "Result and Library tabs", "Each chart also a table"],
+    ["VIZ: keyboard, focus, labels, light/dark, never colour alone", "index.html, app.css, app.js", "Section 6"],
+    ["APP: local FastAPI + HTML/CSS/JS + SQLite", "main.py, static/, db.py", "One command, no internet"],
+    ["APP: upload, save, contrast, CVD, harmony, rate", "All tabs", "Demo"],
+    ["APP: validation, error states, sample images", "etl.py, samples.py", f"{len(samples)} offline samples"],
+    ["DEV: endpoints for every feature", "api.py", "Section 8"],
+    ["DEV: OpenAPI at /docs and /openapi.json", "FastAPI", "Section 8, docs/openapi.json"],
+    ["DEV: plugin interface and integration example", "plugins.py, plugins/, examples/", "Section 7.2, docs/PLUGINS.md"],
+    ["Cross-dev: suggest swaps, keep contrast, re-score in VibeCheck, show it in its result slot", "crossdev/palette_fixer/", "Sections 9-12.6"],
+], [0.38, 0.30, 0.32])
 
-h1("12. Third-Party Code, Libraries & Creative Attributions")
-P("PaletteAI strictly respects open-source licensing and academic attribution standards. No external third-party services, "
-  "cloud data streams, or commercial APIs are invoked at runtime.")
+h1("15. Third-Party Code, Libraries and Services")
+P("We only claim credit for the code we wrote. Everything below was written by other people and used under its licence. "
+  "PaletteAI calls no outside service while it runs. The plugin's only outside service is VibeCheck itself, which is "
+  "team rm -rf sleep's work, not ours.")
 table([
-    ["Dependency / Resource", "License / Origin", "Role & Justification in PaletteAI"],
-    ["FastAPI, Starlette, Uvicorn", "MIT License", "Asynchronous ASGI web application framework, routing, and high-performance server."],
-    ["Pydantic v2", "MIT License", "Strict schema validation, serialisation, and automatic OpenAPI 3.1 specification generation."],
-    ["Pillow (PIL Fork)", "HPND License", "Image decoding, EXIF orientation correction, format validation, and JPEG preview rendering."],
-    ["NumPy", "BSD 3-Clause", "High-performance vectorised array mathematics for color space conversion and K-Means clustering."],
-    ["HTTPX", "BSD 3-Clause", "Asynchronous HTTP client used for webhook dispatch and cross-dev client integration."],
-    ["ReportLab", "BSD License", "Programmatic PDF generation engine used to compile this technical report."],
-    ["pytest", "MIT License", "Automated unit and integration test runner."],
-    ["Machado, Oliveira & Fernandes (2009)", "Academic Paper", "Linear RGB transformation matrices for physiologically accurate dichromacy simulation."],
-    ["Sharma, Wu & Dalal (2005)", "Academic Paper", "Standard formulation and reference test dataset for CIEDE2000 color difference metric."],
-    ["WCAG 2.1 Standard", "W3C Recommendation", "Relative luminance and contrast ratio formulas for accessibility auditing."],
-    ["Theme Switch & 3D Buttons", "Uiverse.io (zl306, njesenberger), MIT", "Pixel-art theme switch CSS and 3D extract button styling, adapted for inclusive UX."],
-    ["Animated cube logo", "Uiverse.io (Admin12121), MIT", "Loader animation re-scaled into the header logo tile."],
-    ["Extraction loader", "Uiverse.io (Donewenfu), MIT", "Bouncing-bar loader, re-coloured to the wordmark gradient; static for reduced-motion users."],
-    ["Pixel-art name field", "Uiverse.io (xbeat_5120), MIT", "Input styling; orange deepened to pass WCAG AA (about 4.9:1), focus ring kept, hover jitter limited."],
-    ["Sample photo: IITK Library", "Wikimedia Commons, Lalujbad, CC BY-SA 3.0", "File:P.K.kelkar_library_iit_kanpur.jpg, centre-cropped and resized to 480x320. Credited on its sample card."],
-    ["Sample photo: IITK Computer Centre", "Wikimedia Commons, Dr Vinamra, CC BY-SA 4.0", "File:Computer_Center_at_IIT_Kanpur_India.jpg, centre-cropped and resized to 480x320. Credited on its sample card."],
-    ["Sample photo: IITK Hall 2", "Wikimedia Commons, Vaibhav.jndl, CC BY-SA 4.0", "File:Hall_2_IIT_Kanpur.jpg, centre-cropped and resized to 480x320. Credited on its sample card."],
-], [0.26, 0.24, 0.50])
+    ["What", "Licence / source", "What we used it for"],
+    ["FastAPI, Starlette, Uvicorn", "MIT / BSD", "Web framework, routing and server for both PaletteAI and the plugin"],
+    ["Pydantic v2", "MIT", "Request and response models, validation, and the OpenAPI schema"],
+    ["Pillow", "HPND", "Opening and checking images, EXIF rotation, previews"],
+    ["NumPy", "BSD-3", "All the array maths: colour conversion, K-Means, silhouette, ranking"],
+    ["HTTPX", "BSD-3", "Webhook calls, and the plugin's calls to VibeCheck"],
+    ["python-multipart", "Apache-2.0", "Parsing file uploads"],
+    ["SQLite (Python's sqlite3)", "Public domain", "Storage for PaletteAI and the plugin's run log"],
+    ["pytest", "MIT", "Running the tests"],
+    ["ReportLab", "BSD", "Building this PDF"],
+    ["VibeCheck (team rm -rf sleep)", "Their project, github.com/Pro-Nil/vibecheck", "The base app for our plugin; we use its API and its scores"],
+    ["Machado, Oliveira & Fernandes (2009)", "Paper", "Colour-blindness simulation matrices"],
+    ["Sharma, Wu & Dalal (2005)", "Paper", "CIEDE2000 formula and its test pairs"],
+    ["WCAG 2.1", "W3C Recommendation", "Luminance and contrast formulas and thresholds"],
+    ["Theme switch, 3D button", "Uiverse.io (zl306, njesenberger), MIT", "CSS, adapted for contrast and keyboard focus"],
+    ["Cube logo animation", "Uiverse.io (Admin12121), MIT", "Re-scaled into the header logo"],
+    ["Loader", "Uiverse.io (Donewenfu), MIT", "Re-coloured; static when reduced motion is on"],
+    ["Pixel-style input field", "Uiverse.io (xbeat_5120), MIT", "Orange darkened to pass WCAG AA"],
+    ["Photo: IITK Library", "Wikimedia Commons, Lalujbad, CC BY-SA 3.0", "P.K.kelkar_library_iit_kanpur.jpg, cropped and resized; credited on its card"],
+    ["Photo: IITK Computer Centre", "Wikimedia Commons, Dr Vinamra, CC BY-SA 4.0", "Computer_Center_at_IIT_Kanpur_India.jpg, cropped and resized; credited on its card"],
+    ["Photo: IITK Hall 2", "Wikimedia Commons, Vaibhav.jndl, CC BY-SA 4.0", "Hall_2_IIT_Kanpur.jpg, cropped and resized; credited on its card"],
+], [0.28, 0.30, 0.42])
 
-h1("13. AI Usage Statement (written by the team)")
+h1("16. AI Usage (written by the team)")
 # The course brief requires this section to be written by humans, not generated. The build
-# therefore copies the team's own text from docs/AI_USAGE.txt word for word and adds nothing.
-# Format of that file: blank-line-separated paragraphs; a line starting "## " is a sub-heading,
-# lines starting "- " are bullet points.
+# copies the team's own text from docs/AI_USAGE.txt word for word and adds nothing.
+# Format: blank-line-separated paragraphs; a line starting "## " is a sub-heading; lines starting "- " are bullets.
 ai_usage_file = ROOT / "docs" / "AI_USAGE.txt"
 if ai_usage_file.exists() and ai_usage_file.read_text(encoding="utf-8").strip():
     for block in re.split(r"\n\s*\n", ai_usage_file.read_text(encoding="utf-8").strip()):
@@ -905,43 +1103,23 @@ else:
             "with them: hallucinations, intent mismatches, token or rate limits, fixes you had to make. "
             "One short paragraph is not enough.", kind="note")
 
-# ------------------------------------------------------------ 13. Limitations & Roadmap
-h1("14. Critical Analysis, Limitations & Future Roadmap")
+h1("17. Limitations and What We Would Do Next")
 bullets([
-    "<b>Unauthenticated Local Profiles:</b> Profile switching uses plain text identifiers without cryptographic authentication, which is appropriate for a local desktop environment but requires an OAuth2 / JWT layer for multi-tenant cloud hosting.",
-    "<b>Complete Dichromacy vs. Anomalous Trichromacy:</b> CVD simulations currently model complete receptor loss (dichromacy). Modeling anomalous trichromacy (partial sensitivity shifts) requires continuous spectral simulation.",
-    "<b>Palette Export Formats:</b> While the REST API exposes full JSON responses, direct user export to Adobe ACO/ASE, Figma Tokens, and Tailwind CSS variables is planned for version 1.1.",
-    "<b>VibeCheck Integration:</b> The plugin works end to end against a running VibeCheck in its fake-CLIP test mode. Full use in the partner's app needs their one-line change (plugins run off the event loop); with real CLIP the re-score takes longer, so it should be timed against the 5-second limit on the demo laptop.",
+    "<b>No real accounts.</b> Profiles are just names. That is fine for a local app, but a shared or hosted version would need proper logins.",
+    "<b>Colour blindness is simulated at full strength only.</b> Many people have a milder form (anomalous trichromacy), which we do not model.",
+    "<b>Automatic k is conservative on busy photos</b> (Section 12.4). A smarter rule, or showing two suggestions, would help.",
+    "<b>No export</b> to design tools (Figma, Adobe swatches, CSS variables) yet. The JSON API has everything needed to add it.",
+    "<b>Plugin score gains are small</b> because VibeCheck judges the whole look, not just colour (Section 12.6). Suggesting layout "
+    "or type changes is outside what we proposed.",
+    "<b>Re-score checks appear in VibeCheck's History.</b> A way to mark them hidden would need a small change on VibeCheck's side.",
 ])
 
 story.append(PageBreak())
 
-# ============================================================ APPENDIX A: OPENAPI SPECIFICATION
-h1("Appendix A: Complete OpenAPI 3.1 Specification Reference")
-P(f"Complete OpenAPI {spec['openapi']} document for {spec['info']['title']} (v{spec['info']['version']}), automatically generated from "
-  "FastAPI Pydantic models and served at /openapi.json.")
-story.append(Spacer(1, 4))
-
-h2("API Endpoints & HTTP Operation Directory")
-rows = [["Method & Path", "Operation Summary", "Request Parameters / Body", "Status Responses"]]
-for path, ops in spec["paths"].items():
-    for method, op in ops.items():
-        ins = [f"{p['name']} ({p['in']})" for p in op.get("parameters", [])]
-        for ctype, body in (op.get("requestBody", {}).get("content") or {}).items():
-            ref = body.get("schema", {}).get("$ref", "")
-            ins.append(f"Body: {ref.split('/')[-1] or ctype}")
-        rows.append([f"{method.upper()} {path}", op.get("summary", ""), ", ".join(ins) or "-", ", ".join(op.get("responses", {}))])
-table(rows, [0.34, 0.32, 0.22, 0.12])
-
-h2("Pydantic Data Schemas")
-schema_rows = [["Schema Name", "Defined Properties"]]
-for name, sch in sorted(spec["components"]["schemas"].items()):
-    props = sch.get("properties")
-    if props and not name.startswith(("HTTPValidation", "Validation", "Body_")):
-        schema_rows.append([name, ", ".join(props)])
-table(schema_rows, [0.25, 0.75])
-
-h2("Raw OpenAPI Specification (Excerpt)")
+# ============================================================ APPENDIX
+h1("Appendix A: Raw OpenAPI Document (start)")
+P(f"The first part of the OpenAPI {spec['openapi']} JSON for {spec['info']['title']} v{spec['info']['version']}. The full "
+  "file is docs/openapi.json and /openapi.json on the running app.")
 lines = []
 for ln in json.dumps(spec, indent=1, ensure_ascii=True).splitlines()[:500]:
     indent = len(ln) - len(ln.lstrip())
@@ -959,8 +1137,8 @@ doc = SimpleDocTemplate(
     rightMargin=16 * mm,
     topMargin=15 * mm,
     bottomMargin=16 * mm,
-    title="PaletteAI - Final Technical Report",
-    author="Team FORSAKEN",
+    title="PaletteAI - Final Report",
+    author="Team LARPERS",
 )
 
 doc.build(story, canvasmaker=NumberedCanvas)
