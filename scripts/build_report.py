@@ -427,8 +427,8 @@ table([
     ["1", "Jagrab Jyoti Deuri", "265017", "jagrabjd26@iitk.ac.in", "K-Means clustering with silhouette selection; colour science module"],
     ["2", "Neilan Ghosh", "265023", "neilang26@iitk.ac.in", "Preference ranking model; cross-dev colour fixing engine (CIEDE2000)"],
     ["3", "Kamlesh Malviya", "265019", "kamleshm26@iitk.ac.in", "Interface styling, sample images, demo guide, report assembly"],
-    ["4", "Tarun Kumar", "265030", "tarunkumar26@iitk.ac.in", "REST API and plugin system; connecting the plugin to VibeCheck"],
-    ["5", "Sagnik Saha", "265026", "sagniks26@iitk.ac.in", "ETL pipeline and SQLite storage; core unit tests"],
+    ["4", "Tarun Kumar", "265030", "tarunkumar26@iitk.ac.in", "ETL pipeline and SQLite storage; core unit tests"],
+    ["5", "Sagnik Saha", "265026", "sagniksaha26@iitk.ac.in", "REST API and plugin system; connecting the plugin to VibeCheck"],
 ], [0.04, 0.19, 0.10, 0.25, 0.42])
 
 h2("Cross-dev partner")
@@ -476,11 +476,11 @@ table([
      "score, the fallback when the score cannot decide, and merging near-identical colours. Wrote the colour science module: "
      "sRGB to CIELAB, WCAG contrast, the colour-blindness simulation matrices and the harmony rules.",
      "paletteai/clustering.py, paletteai/color.py"],
-    ["Sagnik Saha",
+    ["Tarun Kumar",
      "Built the ETL pipeline: upload checks (size, type, broken files, decompression bombs), EXIF rotation, transparency "
      "handling, pixel sampling, the content hash that skips repeat work, and the SQLite schema. Wrote most of the core unit tests.",
      "paletteai/etl.py, service.py, db.py, tests/test_core.py"],
-    ["Tarun Kumar",
+    ["Sagnik Saha",
      "Built the REST API and its typed request/response models, the error format, and the plugin system (in-process plugins, "
      "webhook plugins, panel blocks, timeouts), with the example plugins and plugin docs. For the cross-dev part, wrote the "
      "code that talks to VibeCheck (reading its event, fetching the team palette, submitting re-score checks, building its "
